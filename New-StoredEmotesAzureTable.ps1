@@ -31,16 +31,18 @@ $specs = @{
 
 $tableName = "StoredEmotes"
 
+$ErrorActionPreference = "Stop"
+
 # Create a Storage Context
 $ctx = New-AzStorageContext -StorageAccountName $storageAccountName -StorageAccountKey $storageAccountKey
 
 # Ensure the table exists
 $existingTable = Get-AzStorageTable -Name $tableName -Context $ctx -ErrorAction SilentlyContinue
 if (-not $existingTable) {
-    New-AzStorageTable -Name $tableName -Context $ctx
-    Write-Output "Table '$tableName' created."
+    $null = New-AzStorageTable -Name $tableName -Context $ctx
+    Write-Verbose "Table '$tableName' created."
 } else {
-    Write-Output "Table '$tableName' already exists."
+    Write-Verbose "Table '$tableName' already exists."
 }
 
 # Get the Table reference
