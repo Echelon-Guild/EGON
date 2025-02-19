@@ -21,7 +21,7 @@ Available commands are:
 /event just adds an extra step where it asks if you want a raid, dungeon, or meeting.
 
 # Running the bot
-Echelon-Bot (pending rename) runs in a docker container and requires an Azure Storage Account for data persistence.
+E.G.O.N. runs in a docker container and requires an Azure Storage Account for data persistence.
 
 You will need several environment variables configured on the container.
 
