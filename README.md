@@ -41,7 +41,7 @@ If running locally, add them to a launchSettings.json file in the /Properties fo
 ```
 {
   "profiles": {
-    "Echelon-Bot": {
+    "EGON": {
       "commandName": "Project"
     },
     "Container (Dockerfile)": {
