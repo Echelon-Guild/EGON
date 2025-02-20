@@ -4,6 +4,8 @@ using Discord.Interactions;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Services;
+using NodaTime;
+using NodaTime.TimeZones;
 
 namespace EGON.DiscordBot.Modules
 {
@@ -589,11 +591,20 @@ namespace EGON.DiscordBot.Modules
 
             if (organizer is null) { organizer = new() { TimeZone = "America/New_York" }; }
 
-            TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById(organizer.TimeZone);
+            DateTimeZone tz = DateTimeZoneProviders.Tzdb[organizer.TimeZone];
 
-            TimeSpan offset = tz.BaseUtcOffset;
+            // 2. Create a LocalDateTime (no offset yet)
+            var localDateTime = new LocalDateTime(scheduleEventRequest.Year.Value,
+                                                  scheduleEventRequest.Month,
+                                                  scheduleEventRequest.Day,
+                                                  scheduleEventRequest.Hour,
+                                                  scheduleEventRequest.Minute, 0);
 
-            DateTimeOffset eventDateTime = new DateTimeOffset(scheduleEventRequest.Year.Value, scheduleEventRequest.Month, scheduleEventRequest.Day, scheduleEventRequest.Hour, scheduleEventRequest.Minute, 0, offset);
+            var zonedDateTime = tz.AtStrictly(localDateTime);
+
+            var offsetDateTime = zonedDateTime.ToOffsetDateTime();
+
+            DateTimeOffset eventDateTime = offsetDateTime.ToDateTimeOffset();
 
             EchelonEvent event_ = new()
             {
@@ -711,6 +722,9 @@ namespace EGON.DiscordBot.Modules
         {
             var scheduledMessageEntity = new ScheduledMessageEntity()
             {
+                PartitionKey = ecEvent.PartitionKey,
+                RowKey = ecEvent.MessageId.ToString(),
+
                 UserId = Context.User.Id,
                 EventId = ecEvent.RowKey,
                 SendTime = ecEvent.EventDateTime.AddMinutes(-15),

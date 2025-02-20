@@ -5,8 +5,8 @@ namespace EGON.DiscordBot.Models.Entities
 {
     public class ScheduledMessageEntity : ITableEntity
     {
-        public string PartitionKey { get; set; } = "ScheduledMessages";
-        public string RowKey { get; set; } = Guid.NewGuid().ToString();
+        public string PartitionKey { get; set; }
+        public string RowKey { get; set; }
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
 

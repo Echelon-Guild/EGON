@@ -269,7 +269,7 @@ namespace EGON.DiscordBot.Modules
             {
                 if (character.RegisteredTo != Context.User.Username)
                 {
-                    await RespondAsync($"{name} on {realm} is not registered to you. You will have to ask the character's current owner to delete it first.", ephemeral: true);
+                    await RespondAsync($"{name} on {realm} is not registered to you. It's currently registered to {character.RegisteredTo} You will have to ask the character's current owner to delete it first.", ephemeral: true);
                     return;
                 }
             }

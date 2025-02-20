@@ -35,6 +35,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return new TableServiceClient(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"));
         });
 
+        services.AddSingleton<StorageService>();
+
         services.AddSingleton(provider =>
         {
             return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"));
@@ -53,8 +55,6 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHttpClient();
 
         services.AddHostedService<ScheduledMessageService>();
-
-
     })
     .Build();
 
