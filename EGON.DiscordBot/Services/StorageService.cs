@@ -117,6 +117,22 @@ namespace EGON.DiscordBot.Services
             await Task.WhenAll(tasks);
         }
 
+        public async Task UpsertAttendeeAsync(AttendeeRecord record)
+        {
+            var entity = new AttendeeRecordEntity
+            {
+                PartitionKey = record.EventId.ToString(),
+                RowKey = record.DiscordName,
+                DiscordName = record.DiscordName,
+                DiscordDisplayName = record.DiscordDisplayName,
+                Role = record.Role,
+                Class = record.Class,
+                Spec = record.Spec
+            };
+
+            await _attendeeRecordTable.UpsertEntityAsync(entity);
+        }
+
         public IEnumerable<AttendeeRecord>? GetAttendeeRecords(ulong messageId)
         {
             IEnumerable<AttendeeRecordEntity> records = _attendeeRecordTable.Query<AttendeeRecordEntity>(e => e.PartitionKey == messageId.ToString());
