@@ -2,7 +2,7 @@
 {
     public class EchelonEvent
     {
-        public int Id { get; set; }
+        public ulong Id { get; set; }
         public ulong MessageId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }

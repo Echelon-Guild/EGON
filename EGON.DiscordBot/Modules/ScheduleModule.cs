@@ -1,76 +1,31 @@
-﻿using Azure.Data.Tables;
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using EGON.DiscordBot.Models;
-using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Services;
 using NodaTime;
-using NodaTime.TimeZones;
 
 namespace EGON.DiscordBot.Modules
 {
     public class ScheduleModule : InteractionModuleBase<SocketInteractionContext>
     {
-        private readonly TableClient _eventsTableClient;
-        private readonly TableClient _attendeeTableClient;
-        private readonly TableClient _scheduledMessageTableClient;
-        private readonly TableClient _userTableClient;
+        private readonly StorageService _storageService;
 
         private readonly EmbedFactory _embedFactory;
 
         private int[] _longMonths = [1, 3, 5, 7, 8, 10, 12];
 
-        private static Dictionary<int, ScheduleEventRequest> _requestWorkingCache = new();
+        private static Dictionary<ulong, ScheduleEventRequest> _requestWorkingCache = new();
 
-        public ScheduleModule(TableServiceClient tableServiceClient, EmbedFactory embedFactory)
+        public ScheduleModule(StorageService storageService, EmbedFactory embedFactory)
         {
-            _eventsTableClient = tableServiceClient.GetTableClient(TableNames.EVENT_TABLE_NAME);
-            _eventsTableClient.CreateIfNotExists();
-
-            _attendeeTableClient = tableServiceClient.GetTableClient(TableNames.ATTENDEE_TABLE_NAME);
-            _attendeeTableClient.CreateIfNotExists();
-
-            _scheduledMessageTableClient = tableServiceClient.GetTableClient(TableNames.SCHEDULED_MESSAGE_TABLE_NAME);
-            _scheduledMessageTableClient.CreateIfNotExists();
-
-            _userTableClient = tableServiceClient.GetTableClient(TableNames.USER_TABLE_NAME);
-            _userTableClient.CreateIfNotExists();
+            _storageService = storageService;
 
             _embedFactory = embedFactory;
         }
 
-        public async Task SaveEventToTableStorage(ulong messageId, EchelonEvent event_)
+        private string CreateReminderMessage(EchelonEvent ecEvent)
         {
-            var entity = new EchelonEventEntity
-            {
-                PartitionKey = event_.EventType.ToString(),
-                RowKey = event_.Id.ToString(),
-                EventName = event_.Name,
-                EventDateTime = event_.EventDateTime,
-                EventDescription = event_.Description,
-                Organizer = event_.Organizer,
-                ImageUrl = event_.ImageUrl,
-                Footer = event_.Footer,
-                MessageId = messageId
-            };
-
-            await _eventsTableClient.UpsertEntityAsync(entity);
-        }
-
-        public async Task SaveAttendeeRecordToTableStorage(AttendeeRecord record)
-        {
-            var entity = new AttendeeRecordEntity
-            {
-                PartitionKey = record.EventId.ToString(),
-                RowKey = record.DiscordName,
-                DiscordName = record.DiscordName,
-                DiscordDisplayName = record.DiscordDisplayName,
-                Role = record.Role,
-                Class = record.Class,
-                Spec = record.Spec
-            };
-
-            await _attendeeTableClient.UpsertEntityAsync(entity);
+            return $"Reminder!\nYou have the event {ecEvent.Name} at <t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
         }
 
         // Create a new event
@@ -81,16 +36,18 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("mythic", "Schedule a Mythic+")]
         public async Task Mythic(string name, string description)
         {
+            ulong requestId = GetNextAvailableRequestId();
+
             ScheduleEventRequest request = new();
 
             request.Name = name;
-            request.Id = GetNextAvailableEventId();
+            request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Dungeon;
             request.Description = description;
 
             _requestWorkingCache.Add(request.Id, request);
 
-            if (!UserTimeZoneRegistered())
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{request.Id}")
@@ -115,13 +72,13 @@ namespace EGON.DiscordBot.Modules
             ScheduleEventRequest request = new();
 
             request.Name = name;
-            request.Id = GetNextAvailableEventId();
+            request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Raid;
             request.Description = description;
 
             _requestWorkingCache.Add(request.Id, request);
 
-            if (!UserTimeZoneRegistered())
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{request.Id}")
@@ -146,13 +103,13 @@ namespace EGON.DiscordBot.Modules
             ScheduleEventRequest request = new();
 
             request.Name = name;
-            request.Id = GetNextAvailableEventId();
+            request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Meeting;
             request.Description = description;
 
             _requestWorkingCache.Add(request.Id, request);
 
-            if (!UserTimeZoneRegistered())
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{request.Id}")
@@ -176,14 +133,14 @@ namespace EGON.DiscordBot.Modules
         {
             ScheduleEventRequest request = new();
             request.Name = name;
-            request.Id = GetNextAvailableEventId();
+            request.Id = GetNextAvailableRequestId();
             request.Description = description;
 
             _requestWorkingCache.Add(request.Id, request);
 
             ComponentBuilder builder;
 
-            if (!UserTimeZoneRegistered())
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{request.Id}")
@@ -211,22 +168,13 @@ namespace EGON.DiscordBot.Modules
             await RespondAsync("Choose an event type:", components: builder.Build(), ephemeral: true);
         }
 
-        private bool UserTimeZoneRegistered()
-        {
-            EchelonUserEntity? user = _userTableClient.Query<EchelonUserEntity>(e => e.RowKey == Context.User.Username).FirstOrDefault();
-
-            if (user is null) { return false; }
-
-            return !string.IsNullOrWhiteSpace(user.TimeZone);
-        }
-
         [ComponentInteraction("country_selected_*")]
         public async Task HandleCountrySelected(string customId, string selectedCountry)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
 
             var timeZoneSelectMenu = new SelectMenuBuilder()
-                .WithCustomId($"timezone_selected_{eventId}")
+                .WithCustomId($"timezone_selected_{requestId}")
                 .WithPlaceholder("Please select your time zone");
 
             if (selectedCountry == "US")
@@ -301,15 +249,16 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("timezone_selected_*")]
         public async Task HandleTimeZoneSelected(string customId, string selectedTimeZone)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
 
-            EchelonUserEntity? user = _userTableClient.Query<EchelonUserEntity>(e => e.RowKey == Context.User.Username).FirstOrDefault();
+            EchelonUser? user = _storageService.GetUser(Context.User.Username);
 
             if (user is null)
             {
-                user = new EchelonUserEntity()
+                user = new EchelonUser()
                 {
-                    RowKey = Context.User.Username,
+                    DiscordDisplayName = Context.User.GlobalName,
+                    DiscordName = Context.User.Username,
                     TimeZone = selectedTimeZone
                 };
             }
@@ -318,12 +267,12 @@ namespace EGON.DiscordBot.Modules
                 user.TimeZone = selectedTimeZone;
             }
 
-            await _userTableClient.UpsertEntityAsync(user);
+            await _storageService.UpsertUserAsync(user);
 
-            if (_requestWorkingCache[eventId].EventType is null)
+            if (_requestWorkingCache[requestId].EventType is null)
             {
                 var eventTypeDropdown = new SelectMenuBuilder()
-                    .WithCustomId($"event_select_{eventId}")
+                    .WithCustomId($"event_select_{requestId}")
                     .WithPlaceholder("What kind of event?")
                     .AddOption("Dungeon", "Dungeon")
                     .AddOption("Raid", "Raid")
@@ -336,25 +285,25 @@ namespace EGON.DiscordBot.Modules
                 return;
             }
 
-            await RespondToTypeSelected(eventId);    
+            await RespondToTypeSelected(requestId);    
         }
 
         [ComponentInteraction("event_select_*")]
         public async Task HandleEventTypeSelected(string customId, string eventType)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
 
             EventType type = Enum.Parse<EventType>(eventType);
 
-            _requestWorkingCache[eventId].EventType = type;
+            _requestWorkingCache[requestId].EventType = type;
 
-            await RespondToTypeSelected(eventId);
+            await RespondToTypeSelected(requestId);
         }
 
-        private async Task RespondToTypeSelected(int eventId)
+        private async Task RespondToTypeSelected(ulong requestId)
         {
             var monthDropdown = new SelectMenuBuilder()
-                .WithCustomId($"month_select_{eventId}")
+                .WithCustomId($"month_select_{requestId}")
                 .WithPlaceholder("Select the month of the event")
                 .AddOption(DateTime.Now.ToString("MMMM"), DateTime.Now.Month.ToString())
                 .AddOption(DateTime.Now.AddMonths(1).ToString("MMMM"), DateTime.Now.AddMonths(1).Month.ToString())
@@ -377,14 +326,14 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("month_select_*")]
         public async Task HandleMonthSelected(string customId, string month)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
 
             int _month = int.Parse(month);
 
-            _requestWorkingCache[eventId].Month = _month;
+            _requestWorkingCache[requestId].Month = _month;
 
             var weekDropdown = new SelectMenuBuilder()
-                .WithCustomId($"week_select_{eventId}")
+                .WithCustomId($"week_select_{requestId}")
                 .WithPlaceholder("Select the week of the event");
 
             AddWeekOptions(weekDropdown, _month);
@@ -414,16 +363,16 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("week_select_*")]
         public async Task HandleWeekSelected(string customId, string week)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
             int _week = int.Parse(week);
 
-            _requestWorkingCache[eventId].Week = _week;
+            _requestWorkingCache[requestId].Week = _week;
 
             var dayDropdown = new SelectMenuBuilder()
-                .WithCustomId($"day_select_{eventId}")
+                .WithCustomId($"day_select_{requestId}")
                 .WithPlaceholder("Select the day of the event");
 
-            AddDayOptions(dayDropdown, _requestWorkingCache[eventId].Month, _week);
+            AddDayOptions(dayDropdown, _requestWorkingCache[requestId].Month, _week);
 
             var builder = new ComponentBuilder().WithSelectMenu(dayDropdown);
 
@@ -495,13 +444,13 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("day_select_*")]
         public async Task HandleDaySelected(string customId, string day)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
             int _day = int.Parse(day);
 
-            _requestWorkingCache[eventId].Day = _day;
+            _requestWorkingCache[requestId].Day = _day;
 
             var hourDropdown = new SelectMenuBuilder()
-                .WithCustomId($"hour_select_{eventId}")
+                .WithCustomId($"hour_select_{requestId}")
                 .WithPlaceholder("Select the hour of the event");
 
             AddHourOptions(hourDropdown);
@@ -542,13 +491,13 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("hour_select_*")]
         public async Task HandleHourSelected(string customId, string hour)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
             int _hour = int.Parse(hour);
 
-            _requestWorkingCache[eventId].Hour = _hour;
+            _requestWorkingCache[requestId].Hour = _hour;
 
             var minuteDropdown = new SelectMenuBuilder()
-                .WithCustomId($"minute_select_{eventId}")
+                .WithCustomId($"minute_select_{requestId}")
                 .WithPlaceholder("Select the minute of the event")
                 .AddOption("00", "00")
                 .AddOption("15", "15")
@@ -563,12 +512,12 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("minute_select_*")]
         public async Task HandleMinuteSelected(string customId, string minute)
         {
-            int eventId = int.Parse(customId);
+            ulong requestId = ulong.Parse(customId);
             int _minute = int.Parse(minute);
 
-            _requestWorkingCache[eventId].Minute = _minute;
+            _requestWorkingCache[requestId].Minute = _minute;
 
-            ScheduleEventRequest scheduleEventRequest = _requestWorkingCache[eventId];
+            ScheduleEventRequest scheduleEventRequest = _requestWorkingCache[requestId];
 
             await RespondToEventRequestAsync(scheduleEventRequest);
 
@@ -587,7 +536,7 @@ namespace EGON.DiscordBot.Modules
                     ++scheduleEventRequest.Year;
             }
 
-            EchelonUserEntity? organizer = _userTableClient.Query<EchelonUserEntity>(e => e.RowKey == Context.User.Username).FirstOrDefault();
+            EchelonUser? organizer = _storageService.GetUser(Context.User.Username);
 
             if (organizer is null) { organizer = new() { TimeZone = "America/New_York" }; }
 
@@ -625,7 +574,9 @@ namespace EGON.DiscordBot.Modules
             else
                 message = await RespondToGameEventAsync(event_);
 
-            await SaveEventToTableStorage(message.Id, event_);
+            event_.MessageId = message.Id;
+
+            await _storageService.UpsertEventAsync(event_);
         }
 
         private async Task<IUserMessage> RespondToGameEventAsync(EchelonEvent ecEvent)
@@ -634,6 +585,7 @@ namespace EGON.DiscordBot.Modules
                 .WithButton("Sign Up", $"signup_event_{ecEvent.Id}")
                 .WithButton("Absence", $"absence_event_{ecEvent.Id}")
                 .WithButton("Tentative", $"tentative_event_{ecEvent.Id}")
+                .WithButton("Reset Spec", $"reset_class_{ecEvent.Id}")
                 .Build();
 
             Embed embed = _embedFactory.CreateEventEmbed(ecEvent);
@@ -645,7 +597,7 @@ namespace EGON.DiscordBot.Modules
         private async Task<IUserMessage> RespondToMeetingEventAsync(EchelonEvent ecEvent)
         {
             MessageComponent components = new ComponentBuilder()
-                .WithButton("Sign Up", $"signupmeeting_event_{ecEvent.Id}")
+                .WithButton("Sign Up", $"signup_event_{ecEvent.Id}")
                 .WithButton("Absence", $"absence_event_{ecEvent.Id}")
                 .WithButton("Tentative", $"tentative_event_{ecEvent.Id}")
                 .Build();
@@ -656,87 +608,36 @@ namespace EGON.DiscordBot.Modules
             return message;
         }
 
-        private int GetNextAvailableEventId()
+        private ulong GetNextAvailableRequestId()
         {
-            return Random.Shared.Next();
+            return (ulong)Random.Shared.Next();
         }
 
-        public async Task UpdateEventEmbed(int eventId)
+        public async Task UpdateEventEmbed(ulong eventId)
         {
             // Retrieve event entity (including MessageId)
-            var eventEntity = _eventsTableClient.Query<EchelonEventEntity>()
-                .FirstOrDefault(e => e.RowKey == eventId.ToString());
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
 
-            if (eventEntity == null)
+            if (event_ is null)
             {
-                await RespondAsync("Event not found or missing message ID.");
                 return;
             }
 
             // Retrieve the Discord message
             var channel = Context.Client.GetChannel(Context.Channel.Id) as IMessageChannel;
-            var message = await channel.GetMessageAsync(eventEntity.MessageId) as IUserMessage;
+            var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
 
-            if (message == null)
+            if (message is null)
             {
-                await RespondAsync("Message not found.");
                 return;
             }
 
-            // Fetch all attendees from Azure Table Storage
-            var attendees = _attendeeTableClient.Query<AttendeeRecordEntity>()
-                .Where(a => a.PartitionKey == eventId.ToString())
-                .Select(a => new AttendeeRecord() 
-                { 
-                    Id = GetNextAvailableAttendeeRecordId(), 
-                    DiscordName = a.DiscordName, 
-                    DiscordDisplayName = a.DiscordDisplayName, 
-                    EventId = eventId, 
-                    Role = a.Role, 
-                    Class = a.Class, 
-                    Spec = a.Spec 
-                })
-                .ToList();
+            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
 
-            // Rebuild the embed with updated attendees
-
-            EchelonEvent updatedEvent = new()
-            {
-                Id = int.Parse(eventEntity.RowKey),
-                Name = eventEntity.EventName,
-                Description = eventEntity.EventDescription,
-                Organizer = eventEntity.Organizer,
-                ImageUrl = eventEntity.ImageUrl,
-                Footer = eventEntity.Footer,
-                EventDateTime = eventEntity.EventDateTime,
-                EventType = Enum.Parse<EventType>(eventEntity.PartitionKey)
-            };
-
-            var embed = _embedFactory.CreateEventEmbed(updatedEvent, attendees);
+            var embed = _embedFactory.CreateEventEmbed(event_, attendees);
 
             // Modify the existing message with the updated embed
             await message.ModifyAsync(msg => msg.Embed = embed);
-        }
-
-        private async Task ScheduleEventReminder(EchelonEventEntity ecEvent)
-        {
-            var scheduledMessageEntity = new ScheduledMessageEntity()
-            {
-                PartitionKey = ecEvent.PartitionKey,
-                RowKey = ecEvent.MessageId.ToString(),
-
-                UserId = Context.User.Id,
-                EventId = ecEvent.RowKey,
-                SendTime = ecEvent.EventDateTime.AddMinutes(-15),
-                Message = CreateReminderMessage(ecEvent)
-            };
-
-            await _scheduledMessageTableClient.UpsertEntityAsync(scheduledMessageEntity);
-        }
-
-        private string CreateReminderMessage(EchelonEventEntity ecEvent)
-        {
-            return $"Reminder!\nYou have the event {ecEvent.EventName} at <t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
         }
 
         // Record response to a meeting or game event.
@@ -744,7 +645,7 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("signupmeeting_*")]
         public async Task HandleMeetingSignup(string customId)
         {
-            int eventId = int.Parse(customId.Split('_')[1]);
+            ulong eventId = ulong.Parse(customId.Split('_')[1]);
 
             AttendeeRecord record = new()
             {
@@ -755,14 +656,21 @@ namespace EGON.DiscordBot.Modules
                 Role = "Attendee"
             };
 
-            await SaveAttendeeRecordToTableStorage(record);
+            await _storageService.UpsertAttendeeAsync(record);
 
             await UpdateEventEmbed(eventId);
 
-            var eventEntity = _eventsTableClient.Query<EchelonEventEntity>()
-                .FirstOrDefault(e => e.RowKey == eventId.ToString());
+            EchelonEvent event_ = _storageService.GetEvent(eventId);
 
-            await ScheduleEventReminder(eventEntity);
+            ScheduledMessage message = new()
+            {
+                EventId = eventId,
+                Message = CreateReminderMessage(event_),
+                SendTime = event_.EventDateTime.AddMinutes(-30),
+                UserId = Context.User.Id
+            };
+
+            await _storageService.UpsertScheduledMessageAsync(message);
 
             await RespondAsync("See you at the meeting!", ephemeral: true);
         }
@@ -770,7 +678,7 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("absence_event_*")]
         public async Task HandleAbscence(string customId)
         {
-            int eventId = int.Parse(customId);
+            ulong eventId = ulong.Parse(customId);
 
             AttendeeRecord record = new()
             {
@@ -781,24 +689,24 @@ namespace EGON.DiscordBot.Modules
                 Role = "Absent"
             };
 
-            await SaveAttendeeRecordToTableStorage(record);
+            await _storageService.UpsertAttendeeAsync(record);
 
             await UpdateEventEmbed(eventId);
 
             await RespondAsync("We'll miss you!", ephemeral: true);
 
-            var scheduledReminders = _scheduledMessageTableClient.Query<ScheduledMessageEntity>(e => e.EventId == customId);
+            IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
-            foreach (ScheduledMessageEntity message in scheduledReminders)
+            foreach (ScheduledMessage message in messages)
             {
-                await _scheduledMessageTableClient.DeleteEntityAsync(message);
+                await _storageService.DeleteScheduledMessageAsync(message);
             }
         }
 
         [ComponentInteraction("tentative_event_*")]
         public async Task HandleTentative(string customId)
         {
-            int eventId = int.Parse(customId);
+            ulong eventId = ulong.Parse(customId);
 
             //AttendeeRecord record = new(eventId, Context.User.Username, Context.User.GlobalName, "Tentative", string.Empty, string.Empty);
 
@@ -811,25 +719,58 @@ namespace EGON.DiscordBot.Modules
                 Role = "Tentative"
             };
 
-            await SaveAttendeeRecordToTableStorage(record);
+            await _storageService.UpsertAttendeeAsync(record);
 
             await UpdateEventEmbed(eventId);
 
             await RespondAsync("We hope to see you!", ephemeral: true);
 
-            var scheduledReminders = _scheduledMessageTableClient.Query<ScheduledMessageEntity>(e => e.EventId == customId);
+            IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
-            foreach (ScheduledMessageEntity message in scheduledReminders)
+            foreach (ScheduledMessage message in messages)
             {
-                await _scheduledMessageTableClient.DeleteEntityAsync(message);
+                await _storageService.DeleteScheduledMessageAsync(message);
             }
         }
 
         // Game event signup is a bit more complicated, so here's it's section.
-        [ComponentInteraction("signup_*")]
+        [ComponentInteraction("signup_event_*")]
         public async Task HandleSignup(string customId)
         {
-            int eventId = int.Parse(customId.Split('_')[1]);
+            ulong eventId = ulong.Parse(customId);
+
+            if (_storageService.IsUserRegisteredToSignUpToWoWEvents(Context.User.Username))
+            {
+                EchelonUser? user = _storageService.GetUser(Context.User.Username);
+
+                if (user is null)
+                {
+                    await RespondAsync("Tell Chris something weird happened in ScheduleModule on line 750.");
+                    return;
+                }
+
+                var role = GetRole(user.Class, user.Spec);
+
+                AttendeeRecord record = new()
+                {
+                    Id = GetNextAvailableAttendeeRecordId(),
+                    EventId = eventId,
+                    DiscordDisplayName = Context.User.GlobalName,
+                    DiscordName = Context.User.Username,
+                    Role = role,
+                    Class = user.Class,
+                    Spec = user.Spec
+                };
+
+
+                await _storageService.UpsertAttendeeAsync(record);
+
+                await UpdateEventEmbed(eventId);
+
+                await RespondAsync($"✅ {Context.User.GlobalName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
+
+                return;
+            }
 
             var classDropdown = new SelectMenuBuilder()
                 .WithCustomId($"class_select_{eventId}")
@@ -947,12 +888,9 @@ namespace EGON.DiscordBot.Modules
                 return;
             }
 
-            int eventId = int.Parse(customId);
+            ulong eventId = ulong.Parse(customId);
 
             var role = GetRole(selectedClass, selectedSpec);
-            var user = Context.User.GlobalName;
-
-            //AttendeeRecord record = new(eventId, Context.User.Username, Context.User.GlobalName, role, selectedClass, selectedSpec);
 
             AttendeeRecord record = new()
             {
@@ -966,17 +904,81 @@ namespace EGON.DiscordBot.Modules
             };
 
 
-            await SaveAttendeeRecordToTableStorage(record);
+            await _storageService.UpsertAttendeeAsync(record);
+
+            EchelonUser? user = _storageService.GetUser(Context.User.Username);
+
+            if (user is null)
+            {
+                user = new EchelonUser()
+                {
+                    DiscordDisplayName = Context.User.GlobalName,
+                    DiscordName = Context.User.Username,
+                    Class = selectedClass,
+                    Spec = selectedSpec
+                };
+            }
+            else
+            {
+                user.Class = selectedClass;
+                user.Spec = selectedSpec;
+            }
+
+            await _storageService.UpsertUserAsync(user);
 
             await UpdateEventEmbed(eventId);
 
             // Confirm signup
-            await RespondAsync($"✅ {user} signed up as a **{selectedSpec.Prettyfy().ToUpper()} {selectedClass.Prettyfy().ToUpper()}** ({role})", ephemeral: true);
+            await RespondAsync($"✅ {Context.User.GlobalName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
 
-            var eventEntity = _eventsTableClient.Query<EchelonEventEntity>()
-                .First(e => e.RowKey == eventId.ToString());
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
 
-            await ScheduleEventReminder(eventEntity);
+            // Schedule reminder
+            ScheduledMessage message = new()
+            {
+                EventId = eventId,
+                Message = CreateReminderMessage(event_),
+                SendTime = event_.EventDateTime.AddMinutes(-30),
+                UserId = Context.User.Id
+            };
+
+            await _storageService.UpsertScheduledMessageAsync(message);
+        }
+
+        [ComponentInteraction("reset_class_*")]
+        public async Task HandleResetClass(string customId)
+        {
+            ulong eventId = ulong.Parse(customId);
+
+            EchelonUser? user = _storageService.GetUser(Context.User.Username);
+
+            if (user is null)
+            {
+                await RespondAsync("You don't have a spec saved! Just sign up and we'll save your spec.", ephemeral: true);
+                return;
+            }
+
+            user.Class = string.Empty;
+            user.Spec = string.Empty;
+
+            await _storageService.UpsertUserAsync(user);
+
+            IEnumerable<AttendeeRecord>? records = _storageService.GetAttendeeRecords(eventId).Where(e => e.DiscordName == Context.User.Username);
+
+            if (records is null)
+            {
+                await RespondAsync("Got it. Just sign up and we'll save your new preference!", ephemeral: true);
+                return;
+            }
+
+            foreach (AttendeeRecord record in records)
+            {
+                await _storageService.DeleteAttendeeRecordAsync(record);
+            }
+
+            await UpdateEventEmbed(eventId);
+
+            await RespondAsync("Got it. Just sign up and we'll save your new preference!", ephemeral: true);
         }
 
 

@@ -5,7 +5,7 @@ namespace EGON.DiscordBot.Models
     public class AttendeeRecord
     {
         public int Id { get; set; }
-        public int EventId { get; set; }
+        public ulong EventId { get; set; }
         [StringLength(32)]
         public string DiscordName { get; set; }
         public string DiscordDisplayName { get; set; }

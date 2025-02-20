@@ -52,18 +52,19 @@ namespace EGON.DiscordBot.Services
                 EventName = ecEvent.Name,
                 Footer = ecEvent.Footer,
                 ImageUrl = ecEvent.ImageUrl,
-                MessageId = ecEvent.MessageId,
+                EventId = ecEvent.Id.ToString(),
                 Organizer = ecEvent.Organizer,
                 PartitionKey = ecEvent.EventType.ToString(),
-                RowKey = ecEvent.MessageId.ToString()
+                RowKey = ecEvent.MessageId.ToString(),
+                MessageId = ecEvent.MessageId
             };
 
             await _eventTable.UpsertEntityAsync(entity);
         }
 
-        public EchelonEvent? GetEvent(ulong messageId)
+        public EchelonEvent? GetEvent(ulong eventId)
         {
-            EchelonEventEntity? entity = _eventTable.Query<EchelonEventEntity>(e => e.RowKey == messageId.ToString()).FirstOrDefault();
+            EchelonEventEntity? entity = _eventTable.Query<EchelonEventEntity>(e => e.EventId == eventId.ToString()).FirstOrDefault();
 
             if (entity is null) { return null; }
 
@@ -76,7 +77,8 @@ namespace EGON.DiscordBot.Services
                 ImageUrl = entity.ImageUrl,
                 MessageId = entity.MessageId,
                 Organizer = entity.Organizer,
-                EventType = Enum.Parse<EventType>(entity.PartitionKey)
+                EventType = Enum.Parse<EventType>(entity.PartitionKey),
+                Id = eventId
             };
 
             return echelonEvent;
@@ -141,7 +143,7 @@ namespace EGON.DiscordBot.Services
             {
                 var attendeeRecord = new AttendeeRecord()
                 {
-                    EventId = int.Parse(record.PartitionKey),
+                    EventId = ulong.Parse(record.PartitionKey),
                     DiscordName = record.DiscordName,
                     DiscordDisplayName = record.DiscordDisplayName,
                     Role = record.Role,
@@ -235,27 +237,27 @@ namespace EGON.DiscordBot.Services
                 PartitionKey = "ScheduledMessages",
                 RowKey = message.EventId.ToString(),
 
-                EventId = message.EventId,
+                EventId = message.EventId.ToString(),
                 Message = message.Message,
                 SendTime = message.SendTime,
-                UserId = message.UserId
+                UserId = message.UserId.ToString()
             };
 
             await _scheduledMessageTable.UpsertEntityAsync(entity);
         }
 
-        public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong messageId)
+        public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId, ulong userId)
         {
-            IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.RowKey == messageId.ToString());
+            IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString() && e.UserId == userId.ToString());
 
             foreach (ScheduledMessageEntity entity in entities)
             {
                 var message = new ScheduledMessage()
                 {
-                    EventId = entity.EventId,
+                    EventId = ulong.Parse(entity.EventId),
                     Message = entity.Message,
                     SendTime = entity.SendTime,
-                    UserId = entity.UserId
+                    UserId = ulong.Parse(entity.UserId)
                 };
 
                 yield return message;
@@ -269,6 +271,26 @@ namespace EGON.DiscordBot.Services
             if (entity is null) { return; }
 
             await _scheduledMessageTable.DeleteEntityAsync(entity);
+        }
+
+        public IEnumerable<ScheduledMessage> GetMessagesToSend()
+        {
+            var now = DateTimeOffset.UtcNow;
+
+            var entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(m => m.SendTime <= now);
+
+            foreach (ScheduledMessageEntity entity in entities)
+            {
+                var message = new ScheduledMessage()
+                {
+                    EventId = ulong.Parse(entity.EventId),
+                    Message = entity.Message,
+                    SendTime = entity.SendTime,
+                    UserId = ulong.Parse(entity.UserId)
+                };
+
+                yield return message;
+            }
         }
 
         // Emotes

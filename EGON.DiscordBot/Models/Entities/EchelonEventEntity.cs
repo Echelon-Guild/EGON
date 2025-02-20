@@ -15,6 +15,10 @@ namespace EGON.DiscordBot.Models.Entities
         public string Footer { get; set; }
         public ulong MessageId { get; set; }
 
+        // This HAS to be a string for the query, a ulong fails to convert properly
+        public string EventId { get; set; }
+        
+
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
     }

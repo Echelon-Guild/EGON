@@ -1,8 +1,6 @@
-﻿using Azure.Data.Tables;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using EGON.DiscordBot.Models;
-using EGON.DiscordBot.Models.Entities;
 using Microsoft.Extensions.Hosting;
 
 namespace EGON.DiscordBot.Services
@@ -10,18 +8,17 @@ namespace EGON.DiscordBot.Services
     public class ScheduledMessageService : BackgroundService
     {
         private readonly DiscordSocketClient _client;
-        private readonly TableClient _scheduledMessageTable;
-        private readonly TableClient _eventTable;
+        //private readonly TableClient _scheduledMessageTable;
+        //private readonly TableClient _eventTable;
+
+        private readonly StorageService _storageService;
 
         private readonly EmbedFactory _embedFactory;
 
-        public ScheduledMessageService(DiscordSocketClient client, TableServiceClient tableServiceClient, EmbedFactory embedFactory)
+        public ScheduledMessageService(DiscordSocketClient client, StorageService storageService, EmbedFactory embedFactory)
         {
             _client = client;
-            _scheduledMessageTable = tableServiceClient.GetTableClient(TableNames.SCHEDULED_MESSAGE_TABLE_NAME);
-            _scheduledMessageTable.CreateIfNotExists();
-
-            _eventTable = tableServiceClient.GetTableClient(TableNames.EVENT_TABLE_NAME);
+            _storageService = storageService;
             _embedFactory = embedFactory;
         }
 
@@ -31,39 +28,29 @@ namespace EGON.DiscordBot.Services
             {
                 var now = DateTimeOffset.UtcNow;
 
-                var entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(m => m.SendTime <= now).ToList();
+                IEnumerable<ScheduledMessage>? messages = _storageService.GetMessagesToSend(); //_scheduledMessageTable.Query<ScheduledMessageEntity>(m => m.SendTime <= now).ToList();
 
-                foreach (var msg in entities)
+                if (messages is null)
+                {
+                    return;
+                }
+
+                foreach (ScheduledMessage msg in messages)
                 {
                     var user = _client.GetUser(msg.UserId);
                     if (user != null)
                     {
                         var dmChannel = await user.CreateDMChannelAsync();
-                        // await dmChannel.SendMessageAsync(msg.Message);
 
-                        string rowKey = msg.EventId;
+                        string rowKey = msg.EventId.ToString();
 
-                        EchelonEventEntity event_ = _eventTable.Query<EchelonEventEntity>(e => e.RowKey == rowKey).First();
+                        EchelonEvent? event_ = _storageService.GetEvent(msg.EventId);
 
-                        EventType eventType = Enum.Parse<EventType>(event_.PartitionKey);
-
-                        EchelonEvent ecEvent = new()
-                        {
-                            Id = int.Parse(event_.RowKey),
-                            Name = event_.EventName,
-                            Description = event_.EventDescription,
-                            Organizer = event_.Organizer,
-                            ImageUrl = event_.ImageUrl,
-                            Footer = event_.Footer,
-                            EventDateTime = event_.EventDateTime,
-                            EventType = Enum.Parse<EventType>(event_.PartitionKey)
-                        };
-
-                        Embed embed = _embedFactory.CreateEventEmbed(ecEvent);
+                        Embed embed = _embedFactory.CreateEventEmbed(event_);
 
                         await dmChannel.SendMessageAsync(msg.Message, embed: embed);
 
-                        await _scheduledMessageTable.DeleteEntityAsync(msg.PartitionKey, msg.RowKey);
+                        await _storageService.DeleteScheduledMessageAsync(msg);
                     }
                 }
 
