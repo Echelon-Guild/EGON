@@ -1,5 +1,6 @@
 ﻿using Azure.Data.Tables;
-using EGON.DiscordBot.Models.Entities;
+using EGON.Library.Models.Entities;
+using EGON.Library.Utility;
 
 namespace EGON.DiscordBot.Services
 {
@@ -7,7 +8,7 @@ namespace EGON.DiscordBot.Services
     {
         private TableClient _storedEmotes;
 
-        public EmoteFinder(TableServiceClient tableServiceClient) 
+        public EmoteFinder(TableServiceClient tableServiceClient)
         {
             _storedEmotes = tableServiceClient.GetTableClient(TableNames.EMOTE_TABLE_NAME);
             _storedEmotes.CreateIfNotExists();

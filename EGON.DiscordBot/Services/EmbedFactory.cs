@@ -1,8 +1,9 @@
 ﻿using Discord;
-using EGON.DiscordBot.Models;
-using EGON.DiscordBot.Models.Entities;
-using EGON.DiscordBot.Models.WoWApiResponse;
-using EGON.DiscordBot.Services.WoW;
+using EGON.Library.Models;
+using EGON.Library.Models.Entities;
+using EGON.Library.Models.WoWApiResponse;
+using EGON.Library.Services.WoW;
+using EGON.Library.Utility;
 using System.Text;
 
 namespace EGON.DiscordBot.Services
@@ -215,7 +216,7 @@ namespace EGON.DiscordBot.Services
             }
 
             return embedBuilder.Build();
-                
+
         }
 
         private string GetStoredInstanceString(IEnumerable<WoWInstanceInfoEntity> instances)
