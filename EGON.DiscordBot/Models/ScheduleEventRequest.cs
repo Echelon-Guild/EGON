@@ -1,4 +1,4 @@
-﻿namespace EGON.Library.Models
+﻿namespace EGON.DiscordBot.Models
 {
     public class ScheduleEventRequest
     {

@@ -1,9 +1,9 @@
 ﻿using Discord;
-using EGON.Library.Models;
-using EGON.Library.Models.Entities;
-using EGON.Library.Models.WoWApiResponse;
-using EGON.Library.Services.WoW;
-using EGON.Library.Utility;
+using EGON.DiscordBot.Models;
+using EGON.DiscordBot.Models.Entities;
+using EGON.DiscordBot.Models.WoWApiResponse;
+using EGON.DiscordBot.Services.WoW;
+using EGON.DiscordBot.Utility;
 using System.Text;
 
 namespace EGON.DiscordBot.Services
@@ -56,7 +56,7 @@ namespace EGON.DiscordBot.Services
                 .AddField("Scheduled Time", timestamp)
                 .AddField("Event Type", ecEvent.EventType.ToString(), true)
                 .AddField("Organizer", ecEvent.Organizer, true)
-                .WithThumbnailUrl(ecEvent.ImageUrl)
+                .WithImageUrl(ecEvent.ImageUrl)
                 .WithFooter($"Powered by: {ecEvent.Footer}");
 
             if (attendees != null)
