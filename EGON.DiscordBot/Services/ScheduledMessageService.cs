@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using EGON.DiscordBot.Models;
+using EGON.Library.Models;
+using EGON.Library.Services;
 using Microsoft.Extensions.Hosting;
 
 namespace EGON.DiscordBot.Services

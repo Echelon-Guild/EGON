@@ -1,8 +1,10 @@
 ﻿using Discord;
 using Discord.Interactions;
-using EGON.DiscordBot.Models;
+using EGON.Library.Models;
+using EGON.Library.Services;
 using EGON.DiscordBot.Services;
 using NodaTime;
+using EGON.Library.Utility;
 
 namespace EGON.DiscordBot.Modules
 {
