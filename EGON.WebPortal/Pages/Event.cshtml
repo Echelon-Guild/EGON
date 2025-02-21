@@ -1,0 +1,41 @@
+﻿@page
+@model EGON.WebPortal.Pages.EventModel
+@{
+}
+
+<div class="container mt-4">
+    @if (User.Identity?.IsAuthenticated ?? false)
+    {
+        <h2 class="text-primary">Upcoming Events</h2>
+
+        @if (Model.UpcomingEvents != null && Model.UpcomingEvents.Any())
+        {
+            <table class="table table-striped table-hover table-bordered mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var eventItem in Model.UpcomingEvents)
+                    {
+                        <tr>
+                            <td>@eventItem.Name</td>
+                            <td>@eventItem.Description</td>
+                            <td>@eventItem.EventType</td>
+                            <td>@eventItem.EventDateTime.ToString("dddd, MMMM dd hh:mm tt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="alert alert-info mt-3">No upcoming events found.</div>
+        }
+    }
+</div>
+
