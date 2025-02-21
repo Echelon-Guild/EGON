@@ -2,9 +2,9 @@
 using Azure.Storage.Blobs;
 using Discord.Interactions;
 using Discord.WebSocket;
-using EGON.Library.Services;
 using EGON.DiscordBot.Services;
-using EGON.Library.Services.WoW;
+using EGON.DiscordBot.Services;
+using EGON.DiscordBot.Services.WoW;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,14 +33,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton(provider =>
         {
-            return new TableServiceClient(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"));
+            return new TableServiceClient(Environment.GetEnvironmentVariable("AZURE_PRIVATE_STORAGE_CONNECTION_STRING"));
         });
 
         services.AddSingleton<StorageService>();
 
         services.AddSingleton(provider =>
         {
-            return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"));
+            return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_PUBLIC_STORAGE_CONNECTION_STRING"));
         });
 
         services.AddSingleton<BlobUploadService>();

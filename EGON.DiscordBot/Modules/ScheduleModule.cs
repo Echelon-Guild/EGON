@@ -1,16 +1,17 @@
 ﻿using Discord;
 using Discord.Interactions;
-using EGON.Library.Models;
-using EGON.Library.Services;
+using EGON.DiscordBot.Services;
 using EGON.DiscordBot.Services;
 using NodaTime;
-using EGON.Library.Utility;
+using static System.Net.Mime.MediaTypeNames;
+using EGON.DiscordBot.Models;
 
 namespace EGON.DiscordBot.Modules
 {
     public class ScheduleModule : InteractionModuleBase<SocketInteractionContext>
     {
         private readonly StorageService _storageService;
+        private readonly BlobUploadService _blobUploadService;
 
         private readonly EmbedFactory _embedFactory;
 
@@ -18,9 +19,11 @@ namespace EGON.DiscordBot.Modules
 
         private static Dictionary<ulong, ScheduleEventRequest> _requestWorkingCache = new();
 
-        public ScheduleModule(StorageService storageService, EmbedFactory embedFactory)
+        public ScheduleModule(StorageService storageService, BlobUploadService blobUploadService, EmbedFactory embedFactory)
         {
             _storageService = storageService;
+
+            _blobUploadService = blobUploadService;
 
             _embedFactory = embedFactory;
         }
@@ -36,7 +39,7 @@ namespace EGON.DiscordBot.Modules
         // I tried to keep things in order.
 
         [SlashCommand("mythic", "Schedule a Mythic+")]
-        public async Task Mythic(string name, string description)
+        public async Task Mythic(string name, string description, IAttachment? image = null)
         {
             ulong requestId = GetNextAvailableRequestId();
 
@@ -46,6 +49,15 @@ namespace EGON.DiscordBot.Modules
             request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Dungeon;
             request.Description = description;
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
 
             _requestWorkingCache.Add(request.Id, request);
 
@@ -69,7 +81,7 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("raid", "Schedule a Raid")]
-        public async Task Raid(string name, string description)
+        public async Task Raid(string name, string description, IAttachment? image = null)
         {
             ScheduleEventRequest request = new();
 
@@ -77,6 +89,15 @@ namespace EGON.DiscordBot.Modules
             request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Raid;
             request.Description = description;
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
 
             _requestWorkingCache.Add(request.Id, request);
 
@@ -100,7 +121,7 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("meeting", "Schedule a Meeting")]
-        public async Task Meeting(string name, string description)
+        public async Task Meeting(string name, string description, IAttachment? image = null)
         {
             ScheduleEventRequest request = new();
 
@@ -108,6 +129,15 @@ namespace EGON.DiscordBot.Modules
             request.Id = GetNextAvailableRequestId();
             request.EventType = EventType.Meeting;
             request.Description = description;
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
 
             _requestWorkingCache.Add(request.Id, request);
 
@@ -131,12 +161,21 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("event", "Schedule an event")]
-        public async Task Event(string name, string description)
+        public async Task Event(string name, string description, IAttachment? image = null)
         {
             ScheduleEventRequest request = new();
             request.Name = name;
             request.Id = GetNextAvailableRequestId();
             request.Description = description;
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
 
             _requestWorkingCache.Add(request.Id, request);
 
@@ -563,7 +602,7 @@ namespace EGON.DiscordBot.Modules
                 Name = scheduleEventRequest.Name,
                 Description = scheduleEventRequest.Description,
                 Organizer = Context.User.GlobalName,
-                ImageUrl = Context.User.GetAvatarUrl(),
+                ImageUrl = scheduleEventRequest.ImageUrl,
                 Footer = _embedFactory.GetRandomFooter(),
                 EventDateTime = eventDateTime,
                 EventType = scheduleEventRequest.EventType.Value
@@ -947,6 +986,41 @@ namespace EGON.DiscordBot.Modules
             await _storageService.UpsertScheduledMessageAsync(message);
         }
 
+        private string GetRole(string playerClass, string spec)
+        {
+            var tanks = new HashSet<string> { "Blood Death Knight", "Guardian Druid", "Brewmaster Monk", "Protection Paladin", "Protection Warrior", "Vengeance Demon Hunter" };
+            var healers = new HashSet<string> { "Restoration Druid", "Mistweaver Monk", "Holy Paladin", "Holy Priest", "Discipline Priest", "Restoration Shaman", "Preservation Evoker" };
+            var mDps = new HashSet<string>
+            {
+                "Assassination Rogue",
+                "Outlaw Rogue",
+                "Subtlety Rogue",
+                "Fury Warrior",
+                "Arms Warrior",
+                "Retribution Paladin",
+                "Frost Death Knight",
+                "Unholy Death Knight",
+                "Enhancement Shaman",
+                "Feral Druid",
+                "Havoc Demon Hunter",
+                "Windwalker Monk",
+                "Survival Hunter"
+            };
+
+            string fullSpec = $"{spec.Prettyfy()} {playerClass.Prettyfy()}";
+
+            if (tanks.Contains(fullSpec)) return "Tank";
+            if (healers.Contains(fullSpec)) return "Healer";
+            if (mDps.Contains(fullSpec)) return "Melee DPS";
+            return "Ranged DPS";
+        }
+
+        private int GetNextAvailableAttendeeRecordId()
+        {
+            return Random.Shared.Next();
+
+        }
+
         [ComponentInteraction("reset_class_*")]
         public async Task HandleResetClass(string customId)
         {
@@ -983,41 +1057,23 @@ namespace EGON.DiscordBot.Modules
             await RespondAsync("Got it. Just sign up and we'll save your new preference!", ephemeral: true);
         }
 
-
-
-        private string GetRole(string playerClass, string spec)
+        // Timezone reset
+        [SlashCommand("resettz", "Reset your stored time zone information")]
+        public async Task ResetTZ()
         {
-            var tanks = new HashSet<string> { "Blood Death Knight", "Guardian Druid", "Brewmaster Monk", "Protection Paladin", "Protection Warrior", "Vengeance Demon Hunter" };
-            var healers = new HashSet<string> { "Restoration Druid", "Mistweaver Monk", "Holy Paladin", "Holy Priest", "Discipline Priest", "Restoration Shaman", "Preservation Evoker" };
-            var mDps = new HashSet<string>
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
-                "Assassination Rogue",
-                "Outlaw Rogue",
-                "Subtlety Rogue",
-                "Fury Warrior",
-                "Arms Warrior",
-                "Retribution Paladin",
-                "Frost Death Knight",
-                "Unholy Death Knight",
-                "Enhancement Shaman",
-                "Feral Druid",
-                "Havoc Demon Hunter",
-                "Windwalker Monk",
-                "Survival Hunter"
-            };
+                await RespondAsync("You have no time zone information currently saved. Just create an event and we'll get you registered.", ephemeral: true);
+                return;
+            }
 
-            string fullSpec = $"{spec.Prettyfy()} {playerClass.Prettyfy()}";
+            EchelonUser user = _storageService.GetUser(Context.User.Username) ?? new() { DiscordDisplayName = Context.User.GlobalName, DiscordName = Context.User.Username };
 
-            if (tanks.Contains(fullSpec)) return "Tank";
-            if (healers.Contains(fullSpec)) return "Healer";
-            if (mDps.Contains(fullSpec)) return "Melee DPS";
-            return "Ranged DPS";
-        }
+            user.TimeZone = string.Empty;
 
-        private int GetNextAvailableAttendeeRecordId()
-        {
-            return Random.Shared.Next();
+            await _storageService.UpsertUserAsync(user);
 
+            await RespondAsync("Your time zone info has been cleared.", ephemeral: true);
         }
     }
 }

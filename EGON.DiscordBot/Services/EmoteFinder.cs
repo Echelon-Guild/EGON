@@ -1,6 +1,6 @@
 ﻿using Azure.Data.Tables;
-using EGON.Library.Models.Entities;
-using EGON.Library.Utility;
+using EGON.DiscordBot.Models.Entities;
+using EGON.DiscordBot.Utility;
 
 namespace EGON.DiscordBot.Services
 {
