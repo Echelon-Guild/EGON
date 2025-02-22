@@ -1,7 +1,6 @@
 using Azure.Data.Tables;
-using Azure.Storage.Blobs;
-using EGON.Library.Services;
-using EGON.Library.Services.WoW;
+using EGON.WebPortal.Services;
+using EGON.WebPortal.Services.WoW;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
@@ -21,13 +20,6 @@ builder.Services.AddSingleton(provider =>
 });
 
 builder.Services.AddSingleton<StorageService>();
-
-builder.Services.AddSingleton(provider =>
-{
-    return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"));
-});
-
-builder.Services.AddSingleton<BlobUploadService>();
 
 builder.Services.AddSingleton<BattleNetAuthService>();
 

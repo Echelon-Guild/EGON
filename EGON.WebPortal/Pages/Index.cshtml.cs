@@ -1,5 +1,5 @@
-using EGON.Library.Models;
-using EGON.Library.Services;
+using EGON.WebPortal.Models;
+using EGON.WebPortal.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EGON.WebPortal.Pages

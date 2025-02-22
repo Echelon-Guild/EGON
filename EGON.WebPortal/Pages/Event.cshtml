@@ -2,6 +2,28 @@
 @model EGON.WebPortal.Pages.EventModel
 @{
 }
+@section scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('.event-time').forEach(function(el) {
+                var utcDateStr = el.getAttribute('data-utc');
+                var localDate = new Date(utcDateStr);
+
+                // Define options for the date part and the time part
+                const optionsDate = { weekday: 'long', month: 'numeric', day: 'numeric', year: 'numeric' };
+                const optionsTime = { hour: 'numeric', minute: 'numeric', hour12: true };
+
+                // Format the date and time separately
+                const formattedDate = localDate.toLocaleDateString('en-US', optionsDate);
+                const formattedTime = localDate.toLocaleTimeString('en-US', optionsTime);
+
+                // Combine with your desired text
+                el.textContent = `${formattedDate} at ${formattedTime}`;
+            });
+        });
+
+    </script>
+}
 
 <div class="container mt-4">
     @if (User.Identity?.IsAuthenticated ?? false)
@@ -26,7 +48,10 @@
                             <td>@eventItem.Name</td>
                             <td>@eventItem.Description</td>
                             <td>@eventItem.EventType</td>
-                            <td>@eventItem.EventDateTime.ToString("dddd, MMMM dd hh:mm tt")</td>
+                            @* <td>@eventItem.EventDateTime.ToString("dddd, MMMM dd hh:mm tt")</td> *@
+                            <td class="event-time" data-utc="@eventItem.EventDateTime.ToString("o")">
+                                @eventItem.EventDateTime.ToLocalTime().ToString("g")
+                            </td>
                         </tr>
                     }
                 </tbody>
