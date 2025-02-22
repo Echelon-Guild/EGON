@@ -39,8 +39,6 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("mythic", "Schedule a Mythic+")]
         public async Task Mythic(string name, string description, IAttachment? image = null)
         {
-            await DeferAsync();
-
             ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
@@ -50,17 +48,6 @@ namespace EGON.DiscordBot.Modules
             request.EventType = EventType.Dungeon;
             request.Description = description;
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
-
-            request.ImageUrl = imageUrl;
-
-            _requestWorkingCache.Add(request.Id, request);
-
             if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
@@ -72,18 +59,30 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
-
-                return;
+                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
             }
+            else
+            {
+                await RespondToTypeSelected(request.Id);
+            }
+            
 
-            await RespondToTypeSelected(request.Id, true);
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
+
+            _requestWorkingCache.Add(request.Id, request);
         }
 
         [SlashCommand("raid", "Schedule a Raid")]
         public async Task Raid(string name, string description, IAttachment? image = null)
         {
-            await DeferAsync();
+            ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
 
@@ -92,17 +91,6 @@ namespace EGON.DiscordBot.Modules
             request.EventType = EventType.Raid;
             request.Description = description;
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
-
-            request.ImageUrl = imageUrl;
-
-            _requestWorkingCache.Add(request.Id, request);
-
             if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
@@ -114,18 +102,30 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
-
-                return;
+                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+            }
+            else
+            {
+                await RespondToTypeSelected(request.Id);
             }
 
-            await RespondToTypeSelected(request.Id, true);
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = Context.User.GetAvatarUrl();
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            request.ImageUrl = imageUrl;
+
+            _requestWorkingCache.Add(request.Id, request);
         }
 
         [SlashCommand("meeting", "Schedule a Meeting")]
         public async Task Meeting(string name, string description, IAttachment? image = null)
         {
-            await DeferAsync();
+            ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
 
@@ -134,17 +134,6 @@ namespace EGON.DiscordBot.Modules
             request.EventType = EventType.Meeting;
             request.Description = description;
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
-
-            request.ImageUrl = imageUrl;
-
-            _requestWorkingCache.Add(request.Id, request);
-
             if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
@@ -156,23 +145,13 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
-
-                return;
+                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+            }
+            else
+            {
+                await RespondToTypeSelected(request.Id);
             }
 
-            await RespondToTypeSelected(request.Id, true);
-        }
-
-        [SlashCommand("event", "Schedule an event")]
-        public async Task Event(string name, string description, IAttachment? image = null)
-        {
-            await DeferAsync();
-
-            ScheduleEventRequest request = new();
-            request.Name = name;
-            request.Id = GetNextAvailableRequestId();
-            request.Description = description;
 
             string imageUrl;
 
@@ -184,35 +163,6 @@ namespace EGON.DiscordBot.Modules
             request.ImageUrl = imageUrl;
 
             _requestWorkingCache.Add(request.Id, request);
-
-            ComponentBuilder builder;
-
-            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
-            {
-                var countryDropdown = new SelectMenuBuilder()
-                    .WithCustomId($"country_selected_{request.Id}")
-                    .WithPlaceholder("Please select your country")
-                    .AddOption("US", "US")
-                    .AddOption("Canada", "CAN")
-                    .AddOption("Australia", "AUS");
-
-                builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
-
-                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
-
-                return;
-            }
-
-            var eventTypeDropdown = new SelectMenuBuilder()
-                .WithCustomId($"event_select_{request.Id}")
-                .WithPlaceholder("Choose an event type")
-                .AddOption("Raid", EventType.Raid.ToString())
-                .AddOption("Dungeon", EventType.Dungeon.ToString())
-                .AddOption("Meeting", EventType.Meeting.ToString());
-
-            builder = new ComponentBuilder().WithSelectMenu(eventTypeDropdown);
-
-            await FollowupAsync("Choose an event type:", components: builder.Build(), ephemeral: true);
         }
 
         [ComponentInteraction("country_selected_*")]
@@ -316,38 +266,10 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertUserAsync(user);
 
-            if (_requestWorkingCache[requestId].EventType is null)
-            {
-                var eventTypeDropdown = new SelectMenuBuilder()
-                    .WithCustomId($"event_select_{requestId}")
-                    .WithPlaceholder("What kind of event?")
-                    .AddOption("Dungeon", "Dungeon")
-                    .AddOption("Raid", "Raid")
-                    .AddOption("Meeting", "Meeting");
-
-                var builder = new ComponentBuilder().WithSelectMenu(eventTypeDropdown);
-
-                await RespondAsync("What kind of event?", components: builder.Build(), ephemeral: true);
-
-                return;
-            }
-
             await RespondToTypeSelected(requestId);    
         }
 
-        [ComponentInteraction("event_select_*")]
-        public async Task HandleEventTypeSelected(string customId, string eventType)
-        {
-            ulong requestId = ulong.Parse(customId);
-
-            EventType type = Enum.Parse<EventType>(eventType);
-
-            _requestWorkingCache[requestId].EventType = type;
-
-            await RespondToTypeSelected(requestId);
-        }
-
-        private async Task RespondToTypeSelected(ulong requestId, bool followUp = false)
+        private async Task RespondToTypeSelected(ulong requestId)
         {
             var monthDropdown = new SelectMenuBuilder()
                 .WithCustomId($"month_select_{requestId}")
@@ -367,10 +289,7 @@ namespace EGON.DiscordBot.Modules
 
             var builder = new ComponentBuilder().WithSelectMenu(monthDropdown);
 
-            if (followUp)
-                await FollowupAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
-            else
-                await RespondAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
+            await RespondAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
         }
 
         [ComponentInteraction("month_select_*")]
@@ -649,7 +568,7 @@ namespace EGON.DiscordBot.Modules
         private async Task<IUserMessage> RespondToMeetingEventAsync(EchelonEvent ecEvent)
         {
             MessageComponent components = new ComponentBuilder()
-                .WithButton("Sign Up", $"signup_event_{ecEvent.Id}")
+                .WithButton("Sign Up", $"signupmeeting_{ecEvent.Id}")
                 .WithButton("Absence", $"absence_event_{ecEvent.Id}")
                 .WithButton("Tentative", $"tentative_event_{ecEvent.Id}")
                 .Build();
@@ -697,7 +616,7 @@ namespace EGON.DiscordBot.Modules
         [ComponentInteraction("signupmeeting_*")]
         public async Task HandleMeetingSignup(string customId)
         {
-            ulong eventId = ulong.Parse(customId.Split('_')[1]);
+            ulong eventId = ulong.Parse(customId);
 
             AttendeeRecord record = new()
             {
@@ -712,7 +631,13 @@ namespace EGON.DiscordBot.Modules
 
             await UpdateEventEmbed(eventId);
 
-            EchelonEvent event_ = _storageService.GetEvent(eventId);
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
 
             ScheduledMessage message = new()
             {
@@ -732,6 +657,8 @@ namespace EGON.DiscordBot.Modules
         public async Task HandleAbscence(string customId)
         {
             ulong eventId = ulong.Parse(customId);
+
+
 
             AttendeeRecord record = new()
             {
@@ -761,7 +688,13 @@ namespace EGON.DiscordBot.Modules
         {
             ulong eventId = ulong.Parse(customId);
 
-            //AttendeeRecord record = new(eventId, Context.User.Username, Context.User.GlobalName, "Tentative", string.Empty, string.Empty);
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
 
             AttendeeRecord record = new()
             {
@@ -822,7 +755,13 @@ namespace EGON.DiscordBot.Modules
 
                 await RespondAsync($"✅ {Context.User.GlobalName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
 
-                EchelonEvent event_ = _storageService.GetEvent(eventId);
+                EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+                if (event_ is null)
+                {
+                    await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                    return;
+                }
 
                 ScheduledMessage message = new()
                 {
