@@ -57,7 +57,8 @@ namespace EGON.DiscordBot.Services
                 Organizer = ecEvent.Organizer,
                 PartitionKey = ecEvent.EventType.ToString(),
                 RowKey = ecEvent.MessageId.ToString(),
-                MessageId = ecEvent.MessageId
+                MessageId = ecEvent.MessageId,
+                MessageUrl = ecEvent.MessageUrl
             };
 
             await _eventTable.UpsertEntityAsync(entity);
@@ -79,7 +80,8 @@ namespace EGON.DiscordBot.Services
                 MessageId = entity.MessageId,
                 Organizer = entity.Organizer,
                 EventType = Enum.Parse<EventType>(entity.PartitionKey),
-                Id = eventId
+                Id = eventId,
+                MessageUrl = entity.MessageUrl
             };
 
             return echelonEvent;
@@ -111,7 +113,8 @@ namespace EGON.DiscordBot.Services
                     MessageId = entity.MessageId,
                     Organizer = entity.Organizer,
                     EventType = Enum.Parse<EventType>(entity.PartitionKey),
-                    Id = ulong.Parse(entity.EventId)
+                    Id = ulong.Parse(entity.EventId),
+                    MessageUrl = entity.MessageUrl
                 };
 
                 yield return echelonEvent;
@@ -310,7 +313,8 @@ namespace EGON.DiscordBot.Services
                     EventId = ulong.Parse(entity.EventId),
                     Message = entity.Message,
                     SendTime = entity.SendTime,
-                    UserId = ulong.Parse(entity.UserId)
+                    UserId = ulong.Parse(entity.UserId),
+                    EventUrl = entity.EventUrl
                 };
 
                 yield return message;

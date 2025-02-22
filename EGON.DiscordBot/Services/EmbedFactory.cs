@@ -3,7 +3,6 @@ using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Models.WoWApiResponse;
 using EGON.DiscordBot.Services.WoW;
-using EGON.DiscordBot.Utility;
 using System.Text;
 
 namespace EGON.DiscordBot.Services
@@ -19,7 +18,7 @@ namespace EGON.DiscordBot.Services
             _wowApiService = woWApiService;
         }
 
-        public Embed CreateEventEmbed(EchelonEvent ecEvent, IEnumerable<AttendeeRecord> attendees = null)
+        public Embed CreateEventEmbed(EchelonEvent ecEvent, IEnumerable<AttendeeRecord> attendees = null, bool withLink = false)
         {
             Color color;
 
@@ -55,8 +54,11 @@ namespace EGON.DiscordBot.Services
                 .WithColor(color)
                 .AddField("Scheduled Time", timestamp)
                 .AddField("Event Type", ecEvent.EventType.ToString(), true)
-                .AddField("Organizer", ecEvent.Organizer, true)
-                .WithImageUrl(ecEvent.ImageUrl)
+                .AddField("Organizer", ecEvent.Organizer, true);
+
+            if (withLink) { embed.AddField("Link", ecEvent.MessageUrl); }
+
+            embed.WithImageUrl(ecEvent.ImageUrl)
                 .WithFooter($"Powered by: {ecEvent.Footer}");
 
             if (attendees != null)

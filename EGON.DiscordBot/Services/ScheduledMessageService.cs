@@ -8,8 +8,6 @@ namespace EGON.DiscordBot.Services
     public class ScheduledMessageService : BackgroundService
     {
         private readonly DiscordSocketClient _client;
-        //private readonly TableClient _scheduledMessageTable;
-        //private readonly TableClient _eventTable;
 
         private readonly StorageService _storageService;
 
@@ -28,15 +26,23 @@ namespace EGON.DiscordBot.Services
             {
                 var now = DateTimeOffset.UtcNow;
 
-                IEnumerable<ScheduledMessage>? messages = _storageService.GetMessagesToSend(); //_scheduledMessageTable.Query<ScheduledMessageEntity>(m => m.SendTime <= now).ToList();
+                IEnumerable<ScheduledMessage>? messages = _storageService.GetMessagesToSend();
 
                 if (messages is null)
                 {
                     return;
                 }
 
+                int count = 1;
+
+                Console.WriteLine("Starting message processing.");
+
                 foreach (ScheduledMessage msg in messages)
                 {
+                    Console.WriteLine($"Processing message {count}");
+
+                    count++;
+
                     var user = _client.GetUser(msg.UserId);
                     if (user != null)
                     {
@@ -46,7 +52,7 @@ namespace EGON.DiscordBot.Services
 
                         EchelonEvent? event_ = _storageService.GetEvent(msg.EventId);
 
-                        Embed embed = _embedFactory.CreateEventEmbed(event_);
+                        Embed embed = _embedFactory.CreateEventEmbed(event_, withLink: true);
 
                         await dmChannel.SendMessageAsync(msg.Message, embed: embed);
 

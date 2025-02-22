@@ -11,6 +11,7 @@
         public string Footer { get; set; }
         public DateTimeOffset EventDateTime { get; set; }
         public EventType EventType { get; set; }
+        public string MessageUrl { get; set; }
     }
 
     public enum EventType
