@@ -12,10 +12,10 @@ Slash commands take parameters, then usually respond with a series of dropdowns 
 Available commands are:
 
 ````
-/raid NAME DESCRIPTION
-/mythic NAME DESCRIPTION
-/meeting NAME DESCRIPTION
-/event NAME DESCRIPTION
+/raid NAME DESCRIPTION IMAGE
+/mythic NAME DESCRIPTION IMAGE
+/meeting NAME DESCRIPTION IMAGE
+/event NAME DESCRIPTION IMAGE
 ````
 
 /event just adds an extra step where it asks if you want a raid, dungeon, or meeting.
@@ -25,7 +25,8 @@ E.G.O.N. runs in a docker container and requires an Azure Storage Account for da
 
 You will need several environment variables configured on the container.
 
-AZURE_STORAGE_CONNECTION_STRING should contain a connection string to an Azure Storage Account that can run Tables.
+AZURE_PRIVATE_STORAGE_CONNECTION_STRING should contain a connection string to an Azure Storage Account that can run Tables.
+AZURE_PUBLIC_STORAGE_CONNECTION_STRING should contain a connection string to an account with a public container in Azure blob storage.
 
 DISCORD_TOKEN should have your bot token from the discord developer portal.
 
@@ -47,7 +48,8 @@ If running locally, add them to a launchSettings.json file in the /Properties fo
     "Container (Dockerfile)": {
       "commandName": "Docker",
       "environmentVariables": {
-        "AZURE_STORAGE_CONNECTION_STRING": "",
+        "AZURE_PRIVATE_STORAGE_CONNECTION_STRING": "",
+        "AZURE_PUBLIC_STORAGE_CONNECTION_STRING": "",
         "DISCORD_TOKEN": "",
         "DISCORD_SERVER_ID": ""
         "BATTLE_NET_CLIENT_ID": ""
