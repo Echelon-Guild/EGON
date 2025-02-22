@@ -1,0 +1,33 @@
+﻿@page "/"
+@using EGON.Blazor.Models
+@using EGON.Blazor.Services
+@inject NavigationManager NavigationManager
+@inject StorageService StorageService
+
+<AuthorizeView>
+    <Authorized>
+        <h3>Welcome</h3>
+
+        @if(_ecEvents is null || !_ecEvents.Any())
+        {
+            <p>There are no upcoming events.</p>
+        }
+        else
+        {
+            
+        }
+
+    </Authorized>
+    <NotAuthorized>You are not authenticated. Redirecting...</NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<EchelonEvent> _ecEvents;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ecEvents = StorageService.GetUpcomingEvent()?.ToList() ?? new();
+
+        await base.OnInitializedAsync();
+    }
+}
