@@ -26,6 +26,7 @@ E.G.O.N. runs in a docker container and requires an Azure Storage Account for da
 You will need several environment variables configured on the container.
 
 AZURE_PRIVATE_STORAGE_CONNECTION_STRING should contain a connection string to an Azure Storage Account that can run Tables.
+
 AZURE_PUBLIC_STORAGE_CONNECTION_STRING should contain a connection string to an account with a public container in Azure blob storage.
 
 DISCORD_TOKEN should have your bot token from the discord developer portal.
