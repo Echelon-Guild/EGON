@@ -1,9 +1,7 @@
 ﻿using Discord;
 using Discord.Interactions;
 using EGON.DiscordBot.Services;
-using EGON.DiscordBot.Services;
 using NodaTime;
-using static System.Net.Mime.MediaTypeNames;
 using EGON.DiscordBot.Models;
 
 namespace EGON.DiscordBot.Modules
@@ -30,7 +28,7 @@ namespace EGON.DiscordBot.Modules
 
         private string CreateReminderMessage(EchelonEvent ecEvent)
         {
-            return $"Reminder!\nYou have the event {ecEvent.Name} at <t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
+            return $"Reminder!\nYou have the event {ecEvent.Name} in 30 minutes!\n<t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
         }
 
         // Create a new event
@@ -41,6 +39,8 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("mythic", "Schedule a Mythic+")]
         public async Task Mythic(string name, string description, IAttachment? image = null)
         {
+            await DeferAsync();
+
             ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
@@ -72,17 +72,19 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
 
                 return;
             }
 
-            await RespondToTypeSelected(request.Id);
+            await RespondToTypeSelected(request.Id, true);
         }
 
         [SlashCommand("raid", "Schedule a Raid")]
         public async Task Raid(string name, string description, IAttachment? image = null)
         {
+            await DeferAsync();
+
             ScheduleEventRequest request = new();
 
             request.Name = name;
@@ -112,17 +114,19 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
 
                 return;
             }
 
-            await RespondToTypeSelected(request.Id);
+            await RespondToTypeSelected(request.Id, true);
         }
 
         [SlashCommand("meeting", "Schedule a Meeting")]
         public async Task Meeting(string name, string description, IAttachment? image = null)
         {
+            await DeferAsync();
+
             ScheduleEventRequest request = new();
 
             request.Name = name;
@@ -152,17 +156,19 @@ namespace EGON.DiscordBot.Modules
 
                 var builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
 
                 return;
             }
 
-            await RespondToTypeSelected(request.Id);
+            await RespondToTypeSelected(request.Id, true);
         }
 
         [SlashCommand("event", "Schedule an event")]
         public async Task Event(string name, string description, IAttachment? image = null)
         {
+            await DeferAsync();
+
             ScheduleEventRequest request = new();
             request.Name = name;
             request.Id = GetNextAvailableRequestId();
@@ -192,7 +198,7 @@ namespace EGON.DiscordBot.Modules
 
                 builder = new ComponentBuilder().WithSelectMenu(countryDropdown);
 
-                await RespondAsync("Please select your country!", components: builder.Build(), ephemeral: true);
+                await FollowupAsync("Please select your country!", components: builder.Build(), ephemeral: true);
 
                 return;
             }
@@ -206,7 +212,7 @@ namespace EGON.DiscordBot.Modules
 
             builder = new ComponentBuilder().WithSelectMenu(eventTypeDropdown);
 
-            await RespondAsync("Choose an event type:", components: builder.Build(), ephemeral: true);
+            await FollowupAsync("Choose an event type:", components: builder.Build(), ephemeral: true);
         }
 
         [ComponentInteraction("country_selected_*")]
@@ -341,7 +347,7 @@ namespace EGON.DiscordBot.Modules
             await RespondToTypeSelected(requestId);
         }
 
-        private async Task RespondToTypeSelected(ulong requestId)
+        private async Task RespondToTypeSelected(ulong requestId, bool followUp = false)
         {
             var monthDropdown = new SelectMenuBuilder()
                 .WithCustomId($"month_select_{requestId}")
@@ -361,7 +367,10 @@ namespace EGON.DiscordBot.Modules
 
             var builder = new ComponentBuilder().WithSelectMenu(monthDropdown);
 
-            await RespondAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
+            if (followUp)
+                await FollowupAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
+            else
+                await RespondAsync("Select the month of the event:", components: builder.Build(), ephemeral: true);
         }
 
         [ComponentInteraction("month_select_*")]
@@ -617,6 +626,8 @@ namespace EGON.DiscordBot.Modules
 
             event_.MessageId = message.Id;
 
+            event_.MessageUrl = message.GetJumpUrl();
+
             await _storageService.UpsertEventAsync(event_);
         }
 
@@ -708,7 +719,8 @@ namespace EGON.DiscordBot.Modules
                 EventId = eventId,
                 Message = CreateReminderMessage(event_),
                 SendTime = event_.EventDateTime.AddMinutes(-30),
-                UserId = Context.User.Id
+                UserId = Context.User.Id,
+                EventUrl = event_.MessageUrl
             };
 
             await _storageService.UpsertScheduledMessageAsync(message);
@@ -809,6 +821,19 @@ namespace EGON.DiscordBot.Modules
                 await UpdateEventEmbed(eventId);
 
                 await RespondAsync($"✅ {Context.User.GlobalName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
+
+                EchelonEvent event_ = _storageService.GetEvent(eventId);
+
+                ScheduledMessage message = new()
+                {
+                    EventId = eventId,
+                    Message = CreateReminderMessage(event_),
+                    SendTime = event_.EventDateTime.AddMinutes(-30),
+                    UserId = Context.User.Id,
+                    EventUrl = event_.MessageUrl
+                };
+
+                await _storageService.UpsertScheduledMessageAsync(message);
 
                 return;
             }
@@ -980,7 +1005,8 @@ namespace EGON.DiscordBot.Modules
                 EventId = eventId,
                 Message = CreateReminderMessage(event_),
                 SendTime = event_.EventDateTime.AddMinutes(-30),
-                UserId = Context.User.Id
+                UserId = Context.User.Id,
+                EventUrl = event_.MessageUrl
             };
 
             await _storageService.UpsertScheduledMessageAsync(message);
@@ -1050,6 +1076,16 @@ namespace EGON.DiscordBot.Modules
             foreach (AttendeeRecord record in records)
             {
                 await _storageService.DeleteAttendeeRecordAsync(record);
+            }
+
+            IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
+
+            if (messages is not null)
+            {
+                foreach (ScheduledMessage message in messages)
+                {
+                    await _storageService.DeleteScheduledMessageAsync(message);
+                }
             }
 
             await UpdateEventEmbed(eventId);

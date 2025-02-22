@@ -14,6 +14,7 @@ namespace EGON.DiscordBot.Models.Entities
         public string ImageUrl { get; set; }
         public string Footer { get; set; }
         public ulong MessageId { get; set; }
+        public string MessageUrl { get; set; }
 
         // This HAS to be a string for the query, a ulong fails to convert properly
         public string EventId { get; set; }

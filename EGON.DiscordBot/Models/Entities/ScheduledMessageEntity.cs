@@ -13,6 +13,7 @@ namespace EGON.DiscordBot.Models.Entities
 
         public string Message { get; set; }
         public DateTimeOffset SendTime { get; set; }
+        public string EventUrl { get; set; }
 
         // These have to be a string for the Azure table storage query to work right. They should always parse to a ulong.
         public string EventId { get; set; }
