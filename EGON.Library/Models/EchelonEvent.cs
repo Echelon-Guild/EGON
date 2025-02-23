@@ -1,4 +1,4 @@
-﻿namespace EGON.DiscordBot.Models
+﻿namespace EGON.Library.Models
 {
     public class EchelonEvent
     {
@@ -7,7 +7,6 @@
         public string Name { get; set; }
         public string Description { get; set; }
         public string Organizer { get; set; }
-        public string OrganizerUserId { get; set; }
         public string ImageUrl { get; set; }
         public string Footer { get; set; }
         public DateTimeOffset EventDateTime { get; set; }

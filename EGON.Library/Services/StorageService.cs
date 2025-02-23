@@ -1,9 +1,9 @@
 ﻿using Azure.Data.Tables;
-using EGON.DiscordBot.Models;
-using EGON.DiscordBot.Models.Entities;
-using EGON.DiscordBot.Utility;
+using EGON.Library.Models;
+using EGON.Library.Models.Entities;
+using EGON.Library.Utility;
 
-namespace EGON.DiscordBot.Services
+namespace EGON.Library.Services
 {
     public class StorageService
     {
@@ -55,7 +55,6 @@ namespace EGON.DiscordBot.Services
                 ImageUrl = ecEvent.ImageUrl,
                 EventId = ecEvent.Id.ToString(),
                 Organizer = ecEvent.Organizer,
-                OrganizerUserId = ecEvent.OrganizerUserId,
                 PartitionKey = ecEvent.EventType.ToString(),
                 RowKey = ecEvent.MessageId.ToString(),
                 MessageId = ecEvent.MessageId,
@@ -80,7 +79,6 @@ namespace EGON.DiscordBot.Services
                 ImageUrl = entity.ImageUrl,
                 MessageId = entity.MessageId,
                 Organizer = entity.Organizer,
-                OrganizerUserId = entity.OrganizerUserId,
                 EventType = Enum.Parse<EventType>(entity.PartitionKey),
                 Id = eventId,
                 MessageUrl = entity.MessageUrl
@@ -114,7 +112,6 @@ namespace EGON.DiscordBot.Services
                     ImageUrl = entity.ImageUrl,
                     MessageId = entity.MessageId,
                     Organizer = entity.Organizer,
-                    OrganizerUserId = entity.OrganizerUserId,
                     EventType = Enum.Parse<EventType>(entity.PartitionKey),
                     Id = ulong.Parse(entity.EventId),
                     MessageUrl = entity.MessageUrl
@@ -124,36 +121,28 @@ namespace EGON.DiscordBot.Services
             }
         }
 
-        public async Task CancelEventAsync(ulong eventId)
+        public IEnumerable<EchelonEvent>? GetPastEvent()
         {
-            EchelonEvent? ecEvent = GetEvent(eventId);
+            IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow);
 
-            IEnumerable<AttendeeRecord>? attendees = GetAttendeeRecords(eventId);
-
-            IEnumerable<ScheduledMessage>? scheduledMessages = GetScheduledMessages(eventId);
-
-            if (ecEvent is not null)
-                await DeleteEventAsync(ecEvent);
-
-            List<Task> tasks = new();
-
-            if (attendees is not null && attendees.Any())
+            foreach (EchelonEventEntity entity in entities)
             {
-                foreach (AttendeeRecord attendee in attendees)
+                var echelonEvent = new EchelonEvent()
                 {
-                    tasks.Add(DeleteAttendeeRecordAsync(attendee));
-                }
-            }
+                    EventDateTime = entity.EventDateTime,
+                    Description = entity.EventDescription,
+                    Name = entity.EventName,
+                    Footer = entity.Footer,
+                    ImageUrl = entity.ImageUrl,
+                    MessageId = entity.MessageId,
+                    Organizer = entity.Organizer,
+                    EventType = Enum.Parse<EventType>(entity.PartitionKey),
+                    Id = ulong.Parse(entity.EventId),
+                    MessageUrl = entity.MessageUrl
+                };
 
-            if (scheduledMessages is not null && scheduledMessages.Any())
-            {
-                foreach (ScheduledMessage message in scheduledMessages)
-                {
-                    tasks.Add(DeleteScheduledMessageAsync(message));
-                }
+                yield return echelonEvent;
             }
-
-            await Task.WhenAll(tasks);
         }
 
         // Attendees
@@ -311,24 +300,6 @@ namespace EGON.DiscordBot.Services
         public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId, ulong userId)
         {
             IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString() && e.UserId == userId.ToString());
-
-            foreach (ScheduledMessageEntity entity in entities)
-            {
-                var message = new ScheduledMessage()
-                {
-                    EventId = ulong.Parse(entity.EventId),
-                    Message = entity.Message,
-                    SendTime = entity.SendTime,
-                    UserId = ulong.Parse(entity.UserId)
-                };
-
-                yield return message;
-            }
-        }
-
-        public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId)
-        {
-            IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString());
 
             foreach (ScheduledMessageEntity entity in entities)
             {

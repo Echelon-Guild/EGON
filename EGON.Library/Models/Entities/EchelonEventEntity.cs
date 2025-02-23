@@ -1,7 +1,7 @@
 ﻿using Azure;
 using Azure.Data.Tables;
 
-namespace EGON.DiscordBot.Models.Entities
+namespace EGON.Library.Models.Entities
 {
     public class EchelonEventEntity : ITableEntity
     {
@@ -11,7 +11,6 @@ namespace EGON.DiscordBot.Models.Entities
         public string EventDescription { get; set; }
         public DateTimeOffset EventDateTime { get; set; }
         public string Organizer { get; set; }
-        public string OrganizerUserId { get; set; }
         public string ImageUrl { get; set; }
         public string Footer { get; set; }
         public ulong MessageId { get; set; }
