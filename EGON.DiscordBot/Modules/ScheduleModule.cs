@@ -3,6 +3,7 @@ using Discord.Interactions;
 using EGON.DiscordBot.Services;
 using NodaTime;
 using EGON.DiscordBot.Models;
+using Microsoft.VisualBasic;
 
 namespace EGON.DiscordBot.Modules
 {
@@ -29,6 +30,58 @@ namespace EGON.DiscordBot.Modules
         private string CreateReminderMessage(EchelonEvent ecEvent)
         {
             return $"Reminder!\nYou have the event {ecEvent.Name} in 30 minutes!\n<t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
+        }
+
+        // Cancel an event
+        [SlashCommand("cancel", "Cancel an event.")]
+        public async Task Cancel(string eventId)
+        {
+            ulong id = ulong.Parse(eventId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(id);
+
+            if (event_ is null)
+            {
+                await RespondAsync($"No event found matching event id {eventId}", ephemeral: true);
+                return;
+            }
+
+            if (event_.OrganizerUserId != Context.User.Username)
+            {
+                await RespondAsync($"Doesn't look like that's one of your events. Only the organizer can cancel an event.", ephemeral: true);
+                return;
+            }
+
+            var areYouSureDropdown = new SelectMenuBuilder()
+                .WithCustomId($"cancel_event_{id}")
+                .WithPlaceholder("Are you sure?")
+                .AddOption("Yes, I'm sure", "Yes")
+                .AddOption("No, I changed my mind.", "No");
+
+            var builder = new ComponentBuilder().WithSelectMenu(areYouSureDropdown);
+
+            await RespondAsync("Are you sure?", components: builder.Build(), ephemeral: true);
+        }
+
+        [ComponentInteraction("cancel_event_*")]
+        public async Task HandleCancelEvent(string customId, string yesOrNo)
+        {
+            ulong eventId = ulong.Parse(customId);
+
+            if (yesOrNo == "Yes")
+            {
+                await RespondAsync("Event cancelled!", ephemeral: true);
+
+                await UpdateEventEmbed(eventId, true);
+
+                await _storageService.CancelEventAsync(eventId);
+            }
+            else
+            {
+                await RespondAsync("Phew. That was close.", ephemeral: true);
+            }
+
+
         }
 
         // Create a new event
@@ -530,6 +583,7 @@ namespace EGON.DiscordBot.Modules
                 Name = scheduleEventRequest.Name,
                 Description = scheduleEventRequest.Description,
                 Organizer = Context.User.GlobalName,
+                OrganizerUserId = Context.User.Username,
                 ImageUrl = scheduleEventRequest.ImageUrl,
                 Footer = _embedFactory.GetRandomFooter(),
                 EventDateTime = eventDateTime,
@@ -584,7 +638,7 @@ namespace EGON.DiscordBot.Modules
             return (ulong)Random.Shared.Next();
         }
 
-        public async Task UpdateEventEmbed(ulong eventId)
+        public async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
         {
             // Retrieve event entity (including MessageId)
             EchelonEvent? event_ = _storageService.GetEvent(eventId);
@@ -605,10 +659,21 @@ namespace EGON.DiscordBot.Modules
 
             IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
 
-            var embed = _embedFactory.CreateEventEmbed(event_, attendees);
+            Embed? embed;
+            
+            if (cancelled)
+                embed = _embedFactory.CreateCancelledEventEmbed(event_);
+            else
+                embed = _embedFactory.CreateEventEmbed(event_, attendees);
 
             // Modify the existing message with the updated embed
-            await message.ModifyAsync(msg => msg.Embed = embed);
+            await message.ModifyAsync(msg => 
+            {
+                msg.Embed = embed;
+
+                if (cancelled)
+                    msg.Components = new ComponentBuilder().Build();
+            });
         }
 
         // Record response to a meeting or game event.
@@ -709,14 +774,23 @@ namespace EGON.DiscordBot.Modules
 
             await UpdateEventEmbed(eventId);
 
-            await RespondAsync("We hope to see you!", ephemeral: true);
-
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
-            foreach (ScheduledMessage message in messages)
+            if (messages is null || !messages.Any())
             {
-                await _storageService.DeleteScheduledMessageAsync(message);
+                ScheduledMessage message = new()
+                {
+                    EventId = eventId,
+                    Message = CreateReminderMessage(event_),
+                    SendTime = event_.EventDateTime.AddMinutes(-30),
+                    UserId = Context.User.Id,
+                    EventUrl = event_.MessageUrl
+                };
+
+                await _storageService.UpsertScheduledMessageAsync(message);
             }
+
+            await RespondAsync("We hope to see you!", ephemeral: true);
         }
 
         // Game event signup is a bit more complicated, so here's it's section.

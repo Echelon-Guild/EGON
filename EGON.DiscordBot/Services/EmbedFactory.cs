@@ -54,7 +54,8 @@ namespace EGON.DiscordBot.Services
                 .WithColor(color)
                 .AddField("Scheduled Time", timestamp)
                 .AddField("Event Type", ecEvent.EventType.ToString(), true)
-                .AddField("Organizer", ecEvent.Organizer, true);
+                .AddField("Organizer", ecEvent.Organizer, true)
+                .AddField("Event ID", ecEvent.Id);
 
             if (withLink) { embed.AddField("Link", ecEvent.MessageUrl); }
 
@@ -101,6 +102,26 @@ namespace EGON.DiscordBot.Services
                 if (tentative.Any())
                     embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetMeetingAttendeeString(tentative));
             }
+
+            return embed.Build();
+        }
+
+        public Embed CreateCancelledEventEmbed(EchelonEvent ecEvent, bool withLink = false)
+        {
+            Color color = Color.Red;
+
+            EmbedBuilder embed = new EmbedBuilder()
+            .WithTitle(ecEvent.Name)
+            .WithDescription(ecEvent.Description)
+            .WithColor(color)
+            .AddField("Scheduled Time", "CANCELLED")
+            .AddField("Event Type", ecEvent.EventType.ToString(), true)
+            .AddField("Organizer", ecEvent.Organizer, true);
+
+            if (withLink) { embed.AddField("Link", ecEvent.MessageUrl); }
+
+            embed.WithImageUrl(ecEvent.ImageUrl)
+                .WithFooter($"Powered by: {ecEvent.Footer}");
 
             return embed.Build();
         }

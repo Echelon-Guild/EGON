@@ -55,6 +55,7 @@ namespace EGON.DiscordBot.Services
                 ImageUrl = ecEvent.ImageUrl,
                 EventId = ecEvent.Id.ToString(),
                 Organizer = ecEvent.Organizer,
+                OrganizerUserId = ecEvent.OrganizerUserId,
                 PartitionKey = ecEvent.EventType.ToString(),
                 RowKey = ecEvent.MessageId.ToString(),
                 MessageId = ecEvent.MessageId,
@@ -79,6 +80,7 @@ namespace EGON.DiscordBot.Services
                 ImageUrl = entity.ImageUrl,
                 MessageId = entity.MessageId,
                 Organizer = entity.Organizer,
+                OrganizerUserId = entity.OrganizerUserId,
                 EventType = Enum.Parse<EventType>(entity.PartitionKey),
                 Id = eventId,
                 MessageUrl = entity.MessageUrl
@@ -112,6 +114,7 @@ namespace EGON.DiscordBot.Services
                     ImageUrl = entity.ImageUrl,
                     MessageId = entity.MessageId,
                     Organizer = entity.Organizer,
+                    OrganizerUserId = entity.OrganizerUserId,
                     EventType = Enum.Parse<EventType>(entity.PartitionKey),
                     Id = ulong.Parse(entity.EventId),
                     MessageUrl = entity.MessageUrl
@@ -119,6 +122,38 @@ namespace EGON.DiscordBot.Services
 
                 yield return echelonEvent;
             }
+        }
+
+        public async Task CancelEventAsync(ulong eventId)
+        {
+            EchelonEvent? ecEvent = GetEvent(eventId);
+
+            IEnumerable<AttendeeRecord>? attendees = GetAttendeeRecords(eventId);
+
+            IEnumerable<ScheduledMessage>? scheduledMessages = GetScheduledMessages(eventId);
+
+            if (ecEvent is not null)
+                await DeleteEventAsync(ecEvent);
+
+            List<Task> tasks = new();
+
+            if (attendees is not null && attendees.Any())
+            {
+                foreach (AttendeeRecord attendee in attendees)
+                {
+                    tasks.Add(DeleteAttendeeRecordAsync(attendee));
+                }
+            }
+
+            if (scheduledMessages is not null && scheduledMessages.Any())
+            {
+                foreach (ScheduledMessage message in scheduledMessages)
+                {
+                    tasks.Add(DeleteScheduledMessageAsync(message));
+                }
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         // Attendees
@@ -276,6 +311,24 @@ namespace EGON.DiscordBot.Services
         public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId, ulong userId)
         {
             IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString() && e.UserId == userId.ToString());
+
+            foreach (ScheduledMessageEntity entity in entities)
+            {
+                var message = new ScheduledMessage()
+                {
+                    EventId = ulong.Parse(entity.EventId),
+                    Message = entity.Message,
+                    SendTime = entity.SendTime,
+                    UserId = ulong.Parse(entity.UserId)
+                };
+
+                yield return message;
+            }
+        }
+
+        public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId)
+        {
+            IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString());
 
             foreach (ScheduledMessageEntity entity in entities)
             {
