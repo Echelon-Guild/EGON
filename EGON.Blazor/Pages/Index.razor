@@ -1,33 +1,51 @@
 ﻿@page "/"
 @using EGON.Blazor.Models
 @using EGON.Blazor.Services
-@inject NavigationManager NavigationManager
+@using EGON.Blazor.Shared
 @inject StorageService StorageService
 
 <AuthorizeView>
     <Authorized>
-        <h3>Welcome</h3>
+        <h3>Upcoming Events</h3>
 
-        @if(_ecEvents is null || !_ecEvents.Any())
+        @if(_upcomingEvents is null || !_upcomingEvents.Any())
         {
             <p>There are no upcoming events.</p>
         }
         else
         {
-            
+            <EventTable Events="@_upcomingEvents" />
         }
 
+        <h3>Past Events</h3>
+
+        @if (_pastEvents is null || !_pastEvents.Any())
+        {
+            <p>There are no past events.</p>
+        }
+        else
+        {
+            <EventTable Events="@_pastEvents" />
+        }
     </Authorized>
-    <NotAuthorized>You are not authenticated. Redirecting...</NotAuthorized>
+    <NotAuthorized>
+        <p>You are not authenticated. Redirecting...</p>
+    </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    private List<EchelonEvent> _ecEvents;
+    private List<EchelonEvent> _upcomingEvents;
+    private List<EchelonEvent> _pastEvents;
 
     protected override async Task OnInitializedAsync()
     {
-        _ecEvents = StorageService.GetUpcomingEvent()?.ToList() ?? new();
+        // Load your events; this could be asynchronous.
+        _upcomingEvents = StorageService.GetUpcomingEvent()?.ToList() ?? new List<EchelonEvent>();
+
+        _pastEvents = StorageService.GetPastEvent()?.ToList() ?? new List<EchelonEvent>();
 
         await base.OnInitializedAsync();
     }
+
+
 }

@@ -33,7 +33,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
-    options.LoginPath = "/login"; // Redirect unauthenticated requests to /login.
+    options.LoginPath = "/login";
 })
 .AddOAuth("Discord", options =>
 {

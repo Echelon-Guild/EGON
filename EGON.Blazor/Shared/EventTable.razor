@@ -1,0 +1,57 @@
+﻿@using EGON.Blazor.Models
+@using EGON.Blazor.Services
+@inject StorageService StorageService
+
+@if (Events is null)
+{
+    <p><em>Loading events...</em></p>
+}
+else if (!Events.Any())
+{
+    <p>No events to display.</p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Organizer</th>
+                <th>Event Date/Time</th>
+                <th>Type</th>
+                <th>Message URL</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ev in Events)
+            {
+                <EventRow Event="ev" DeleteMethod="@( () => DeleteEventAsync(ev.Id) )" />
+            }
+
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public IEnumerable<EchelonEvent> Events { get; set; }
+
+    async Task DeleteEventAsync(ulong eventId)
+    {
+        EchelonEvent? event_ = StorageService.GetEvent(eventId);
+
+        if (event_ is null) { return; }
+
+        await StorageService.DeleteEventAsync(event_);
+
+        // Remove the deleted event from the list (if the underlying collection is modifiable)
+        if (Events is List<EchelonEvent> eventList)
+        {
+            eventList.RemoveAll(e => e.Id == eventId);
+        }
+
+        StateHasChanged();
+    }
+}

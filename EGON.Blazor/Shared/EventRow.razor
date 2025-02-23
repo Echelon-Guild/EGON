@@ -1,0 +1,33 @@
+﻿@using EGON.Blazor.Models
+
+<tr>
+    <td>@Event.Id</td>
+    <td>@Event.Name</td>
+    <td>@Event.Description</td>
+    <td>@Event.Organizer</td>
+    <td>@Event.EventDateTime.ToString("dddd, M/d/yyyy 'at' h:mm tt")</td>
+    <td>@Event.EventType</td>
+    <td>
+        @if (!string.IsNullOrWhiteSpace(Event.MessageUrl))
+        {
+            <a href="@Event.MessageUrl" target="_blank">View</a>
+        }
+    </td>
+    <td><button @onclick="@DeleteMethod">Delete</button></td>
+</tr>
+
+@code {
+    [Parameter]
+    public EchelonEvent Event { get; set; }
+
+    [Parameter] 
+    public Func<Task> DeleteMethod { get; set; }
+
+    async Task InvokeDeleteMethod()
+    {
+        if (DeleteMethod is not null)
+        {
+            await DeleteMethod();
+        }
+    }
+}

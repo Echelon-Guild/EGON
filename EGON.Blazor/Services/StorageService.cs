@@ -121,6 +121,30 @@ namespace EGON.Blazor.Services
             }
         }
 
+        public IEnumerable<EchelonEvent>? GetPastEvent()
+        {
+            IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow);
+
+            foreach (EchelonEventEntity entity in entities)
+            {
+                var echelonEvent = new EchelonEvent()
+                {
+                    EventDateTime = entity.EventDateTime,
+                    Description = entity.EventDescription,
+                    Name = entity.EventName,
+                    Footer = entity.Footer,
+                    ImageUrl = entity.ImageUrl,
+                    MessageId = entity.MessageId,
+                    Organizer = entity.Organizer,
+                    EventType = Enum.Parse<EventType>(entity.PartitionKey),
+                    Id = ulong.Parse(entity.EventId),
+                    MessageUrl = entity.MessageUrl
+                };
+
+                yield return echelonEvent;
+            }
+        }
+
         // Attendees
 
         public async Task UpsertAttendeesAsync(IEnumerable<AttendeeRecord> attendeeRecords)
