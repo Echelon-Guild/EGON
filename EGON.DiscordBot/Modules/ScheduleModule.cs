@@ -607,10 +607,12 @@ namespace EGON.DiscordBot.Modules
         private async Task<IUserMessage> RespondToGameEventAsync(EchelonEvent ecEvent)
         {
             MessageComponent components = new ComponentBuilder()
-                .WithButton("Sign Up", $"signup_event_{ecEvent.Id}")
-                .WithButton("Absence", $"absence_event_{ecEvent.Id}")
-                .WithButton("Tentative", $"tentative_event_{ecEvent.Id}")
-                .WithButton("Reset Spec", $"reset_class_{ecEvent.Id}")
+                .WithButton("Sign Up", $"signup_event_{ecEvent.Id}", row: 0)
+                .WithButton("Reset Spec", $"reset_class_{ecEvent.Id}", row: 0, style: ButtonStyle.Danger)
+                .WithButton("Absence", $"absence_event_{ecEvent.Id}", row: 1, style: ButtonStyle.Secondary)
+                .WithButton("Tentative", $"tentative_event_{ecEvent.Id}", row: 1, style: ButtonStyle.Secondary)
+                .WithButton("Late", $"late_event_{ecEvent.Id}", row: 1, style: ButtonStyle.Secondary)
+                
                 .Build();
 
             Embed embed = _embedFactory.CreateEventEmbed(ecEvent);
@@ -622,9 +624,10 @@ namespace EGON.DiscordBot.Modules
         private async Task<IUserMessage> RespondToMeetingEventAsync(EchelonEvent ecEvent)
         {
             MessageComponent components = new ComponentBuilder()
-                .WithButton("Sign Up", $"signupmeeting_{ecEvent.Id}")
-                .WithButton("Absence", $"absence_event_{ecEvent.Id}")
-                .WithButton("Tentative", $"tentative_event_{ecEvent.Id}")
+                .WithButton("Sign Up", $"signupmeeting_{ecEvent.Id}", row: 0)
+                .WithButton("Absence", $"absence_event_{ecEvent.Id}", row: 0, style: ButtonStyle.Secondary)
+                .WithButton("Tentative", $"tentative_event_{ecEvent.Id}", row: 1, style: ButtonStyle.Secondary)
+                .WithButton("Late", $"late_event_{ecEvent.Id}", row: 1, style: ButtonStyle.Secondary)
                 .Build();
 
             Embed embed = _embedFactory.CreateEventEmbed(ecEvent);
@@ -683,6 +686,14 @@ namespace EGON.DiscordBot.Modules
         {
             ulong eventId = ulong.Parse(customId);
 
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
+
             AttendeeRecord record = new()
             {
                 Id = GetNextAvailableAttendeeRecordId(),
@@ -695,14 +706,6 @@ namespace EGON.DiscordBot.Modules
             await _storageService.UpsertAttendeeAsync(record);
 
             await UpdateEventEmbed(eventId);
-
-            EchelonEvent? event_ = _storageService.GetEvent(eventId);
-
-            if (event_ is null)
-            {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
-                return;
-            }
 
             ScheduledMessage message = new()
             {
@@ -723,7 +726,13 @@ namespace EGON.DiscordBot.Modules
         {
             ulong eventId = ulong.Parse(customId);
 
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
 
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
 
             AttendeeRecord record = new()
             {
@@ -738,9 +747,14 @@ namespace EGON.DiscordBot.Modules
 
             await UpdateEventEmbed(eventId);
 
-            await RespondAsync("We'll miss you!", ephemeral: true);
+            await RespondAsync("We'll miss you! Thank you for responding!", ephemeral: true);
 
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
+
+            if (messages is null)
+            {
+                return;
+            }
 
             foreach (ScheduledMessage message in messages)
             {
@@ -790,7 +804,52 @@ namespace EGON.DiscordBot.Modules
                 await _storageService.UpsertScheduledMessageAsync(message);
             }
 
-            await RespondAsync("We hope to see you!", ephemeral: true);
+            await RespondAsync("We hope to see you! Thank you for responding!", ephemeral: true);
+        }
+
+        [ComponentInteraction("late_event_*")]
+        public async Task HandleLate(string customId)
+        {
+            ulong eventId = ulong.Parse(customId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
+
+            AttendeeRecord record = new()
+            {
+                Id = GetNextAvailableAttendeeRecordId(),
+                EventId = eventId,
+                DiscordDisplayName = Context.User.GlobalName,
+                DiscordName = Context.User.Username,
+                Role = "Late"
+            };
+
+            await _storageService.UpsertAttendeeAsync(record);
+
+            await UpdateEventEmbed(eventId);
+
+            IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
+
+            if (messages is null || !messages.Any())
+            {
+                ScheduledMessage message = new()
+                {
+                    EventId = eventId,
+                    Message = CreateReminderMessage(event_),
+                    SendTime = event_.EventDateTime.AddMinutes(-30),
+                    UserId = Context.User.Id,
+                    EventUrl = event_.MessageUrl
+                };
+
+                await _storageService.UpsertScheduledMessageAsync(message);
+            }
+
+            await RespondAsync("Thank you for letting us know!", ephemeral: true);
         }
 
         // Game event signup is a bit more complicated, so here's it's section.
@@ -798,6 +857,14 @@ namespace EGON.DiscordBot.Modules
         public async Task HandleSignup(string customId)
         {
             ulong eventId = ulong.Parse(customId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
 
             if (_storageService.IsUserRegisteredToSignUpToWoWEvents(Context.User.Username))
             {
@@ -828,14 +895,6 @@ namespace EGON.DiscordBot.Modules
                 await UpdateEventEmbed(eventId);
 
                 await RespondAsync($"✅ {Context.User.GlobalName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
-
-                EchelonEvent? event_ = _storageService.GetEvent(eventId);
-
-                if (event_ is null)
-                {
-                    await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
-                    return;
-                }
 
                 ScheduledMessage message = new()
                 {

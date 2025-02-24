@@ -101,6 +101,11 @@ namespace EGON.DiscordBot.Services
 
                 if (tentative.Any())
                     embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetMeetingAttendeeString(tentative));
+
+                IEnumerable<AttendeeRecord> late = attendees.Where(e => e.Role.ToLower() == "late");
+
+                if (late.Any())
+                    embed.AddField($"⏰ Late ({late.Count()})", GetMeetingAttendeeString(late));
             }
 
             return embed.Build();
