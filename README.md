@@ -2,7 +2,7 @@
 
 E.G.O.N. is a guild bot for the guild Echelon on Icecrown.
 
-It is primarily a World of Warcraft event scheduling service that integrated with Discord.
+It is primarily a World of Warcraft event scheduling service that is integrated with Discord.
 
 There is also a Blazor Server app for administration. Please see the ReadMe in each project for more information.
 
