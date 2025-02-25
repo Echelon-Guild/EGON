@@ -33,16 +33,8 @@ namespace EGON.DiscordBot.Services
                     return;
                 }
 
-                int count = 1;
-
-                Console.WriteLine("Starting message processing.");
-
                 foreach (ScheduledMessage msg in messages)
                 {
-                    Console.WriteLine($"Processing message {count}");
-
-                    count++;
-
                     var user = _client.GetUser(msg.UserId);
                     if (user != null)
                     {

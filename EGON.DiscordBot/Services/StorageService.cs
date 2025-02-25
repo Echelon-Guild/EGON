@@ -124,6 +124,31 @@ namespace EGON.DiscordBot.Services
             }
         }
 
+        public IEnumerable<EchelonEvent>? GetEventsToClose()
+        {
+            IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow);
+
+            foreach (EchelonEventEntity entity in entities)
+            {
+                var echelonEvent = new EchelonEvent()
+                {
+                    EventDateTime = entity.EventDateTime,
+                    Description = entity.EventDescription,
+                    Name = entity.EventName,
+                    Footer = entity.Footer,
+                    ImageUrl = entity.ImageUrl,
+                    MessageId = entity.MessageId,
+                    Organizer = entity.Organizer,
+                    OrganizerUserId = entity.OrganizerUserId,
+                    EventType = Enum.Parse<EventType>(entity.PartitionKey),
+                    Id = ulong.Parse(entity.EventId),
+                    MessageUrl = entity.MessageUrl
+                };
+
+                yield return echelonEvent;
+            }
+        }
+
         public async Task CancelEventAsync(ulong eventId)
         {
             EchelonEvent? ecEvent = GetEvent(eventId);
