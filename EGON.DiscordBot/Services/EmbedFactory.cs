@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Interactions;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Models.WoWApiResponse;
@@ -7,6 +8,7 @@ using System.Text;
 
 namespace EGON.DiscordBot.Services
 {
+    [DefaultMemberPermissions(GuildPermission.SendMessages)]
     public class EmbedFactory
     {
         private EmoteFinder _emoteFinder;
@@ -69,7 +71,7 @@ namespace EGON.DiscordBot.Services
                     IEnumerable<AttendeeRecord> attending = attendees.Where(e => e.Role.ToLower() == "attendee");
 
                     if (attending.Any())
-                        embed.AddField($"✅ Attendees ({attending.Count()})", GetMeetingAttendeeString(attending));
+                        embed.AddField($"✅ Attendees ({attending.Count()})", GetGenericEventAttendeeString(attending));
                 }
                 else
                 {
@@ -95,17 +97,17 @@ namespace EGON.DiscordBot.Services
                 IEnumerable<AttendeeRecord> absent = attendees.Where(e => e.Role.ToLower() == "absent");
 
                 if (absent.Any())
-                    embed.AddField($"❌ Absent ({absent.Count()})", GetMeetingAttendeeString(absent));
+                    embed.AddField($"❌ Absent ({absent.Count()})", GetGenericEventAttendeeString(absent));
 
                 IEnumerable<AttendeeRecord> tentative = attendees.Where(e => e.Role.ToLower() == "tentative");
 
                 if (tentative.Any())
-                    embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetMeetingAttendeeString(tentative));
+                    embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetGenericEventAttendeeString(tentative));
 
                 IEnumerable<AttendeeRecord> late = attendees.Where(e => e.Role.ToLower() == "late");
 
                 if (late.Any())
-                    embed.AddField($"⏰ Late ({late.Count()})", GetMeetingAttendeeString(late));
+                    embed.AddField($"⏰ Late ({late.Count()})", GetEventLateString(late));
             }
 
             return embed.Build();
@@ -131,7 +133,7 @@ namespace EGON.DiscordBot.Services
             return embed.Build();
         }
 
-        private string GetMeetingAttendeeString(IEnumerable<AttendeeRecord> attendees)
+        private string GetGenericEventAttendeeString(IEnumerable<AttendeeRecord> attendees)
         {
             if (!attendees.Any())
                 return string.Empty;
@@ -155,6 +157,20 @@ namespace EGON.DiscordBot.Services
             foreach (AttendeeRecord attendee in attendees)
             {
                 sb.AppendLine($"{GetAttendeeEmote(attendee)} {attendee.DiscordDisplayName}");
+            }
+
+            return sb.ToString() ?? string.Empty;
+        }
+
+        private string GetEventLateString(IEnumerable<AttendeeRecord> attendees)
+        {
+            if (!attendees.Any())
+                return string.Empty;
+
+            StringBuilder sb = new();
+            foreach (AttendeeRecord attendee in attendees.OrderBy(e => e.MinutesLate))
+            {
+                sb.AppendLine($"{attendee.DiscordDisplayName} ({attendee.MinutesLate})");
             }
 
             return sb.ToString() ?? string.Empty;

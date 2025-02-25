@@ -197,7 +197,8 @@ namespace EGON.DiscordBot.Services
                     DiscordDisplayName = record.DiscordDisplayName,
                     Role = record.Role,
                     Class = record.Class,
-                    Spec = record.Spec
+                    Spec = record.Spec,
+                    MinutesLate = record.MinutesLate
                 };
 
                 tasks.Add(_attendeeRecordTable.UpsertEntityAsync(entity));
@@ -216,7 +217,8 @@ namespace EGON.DiscordBot.Services
                 DiscordDisplayName = record.DiscordDisplayName,
                 Role = record.Role,
                 Class = record.Class,
-                Spec = record.Spec
+                Spec = record.Spec,
+                MinutesLate = record.MinutesLate
             };
 
             await _attendeeRecordTable.UpsertEntityAsync(entity);
@@ -235,7 +237,8 @@ namespace EGON.DiscordBot.Services
                     DiscordDisplayName = record.DiscordDisplayName,
                     Role = record.Role,
                     Class = record.Class,
-                    Spec = record.Spec
+                    Spec = record.Spec,
+                    MinutesLate = record.MinutesLate
                 };
 
                 yield return attendeeRecord;

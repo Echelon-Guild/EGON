@@ -1,9 +1,8 @@
 ﻿using Discord;
 using Discord.Interactions;
+using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Services;
 using NodaTime;
-using EGON.DiscordBot.Models;
-using Microsoft.VisualBasic;
 
 namespace EGON.DiscordBot.Modules
 {
@@ -90,7 +89,7 @@ namespace EGON.DiscordBot.Modules
         // I tried to keep things in order.
 
         [SlashCommand("mythic", "Schedule a Mythic+")]
-        public async Task Mythic(string name, string description, IAttachment? image = null)
+        public async Task Mythic(string name, string description, IAttachment image)
         {
             ulong requestId = GetNextAvailableRequestId();
 
@@ -120,12 +119,7 @@ namespace EGON.DiscordBot.Modules
             }
             
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+            string imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
 
             request.ImageUrl = imageUrl;
 
@@ -133,7 +127,7 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("raid", "Schedule a Raid")]
-        public async Task Raid(string name, string description, IAttachment? image = null)
+        public async Task Raid(string name, string description, IAttachment image)
         {
             ulong requestId = GetNextAvailableRequestId();
 
@@ -163,12 +157,7 @@ namespace EGON.DiscordBot.Modules
             }
 
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+            string imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
 
             request.ImageUrl = imageUrl;
 
@@ -176,7 +165,7 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("event", "Schedule a non-WoW event")]
-        public async Task Event(string name, string description, IAttachment? image = null)
+        public async Task Event(string name, string description, IAttachment image)
         {
             ulong requestId = GetNextAvailableRequestId();
 
@@ -206,12 +195,7 @@ namespace EGON.DiscordBot.Modules
             }
 
 
-            string imageUrl;
-
-            if (image is null)
-                imageUrl = Context.User.GetAvatarUrl();
-            else
-                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+            string imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
 
             request.ImageUrl = imageUrl;
 
@@ -820,17 +804,43 @@ namespace EGON.DiscordBot.Modules
                 return;
             }
 
+            var minutesLateDropdown = new SelectMenuBuilder()
+                .WithCustomId($"handle_minutes_late_{eventId}")
+                .WithPlaceholder("About how late do you think?")
+                .AddOption("15 minutes", "15")
+                .AddOption("30 minutes", "30")
+                .AddOption("45 minutes", "45")
+                .AddOption("Hour or more", "60");
+
+            var builder = new ComponentBuilder().WithSelectMenu(minutesLateDropdown);
+
+            await RespondAsync("About how late do you think?", components: builder.Build(), ephemeral: true);
+        }
+
+        [ComponentInteraction("handle_minutes_late_*")]
+        public async Task HandleMinutesLate(string customId, string minutesLate)
+        {
+            ulong eventId = ulong.Parse(customId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                return;
+            }
+
             AttendeeRecord record = new()
             {
                 Id = GetNextAvailableAttendeeRecordId(),
                 EventId = eventId,
                 DiscordDisplayName = Context.User.GlobalName,
                 DiscordName = Context.User.Username,
-                Role = "Late"
+                Role = "Late",
+                MinutesLate = minutesLate
             };
 
             await _storageService.UpsertAttendeeAsync(record);
-
             await UpdateEventEmbed(eventId);
 
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
