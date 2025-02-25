@@ -19,6 +19,6 @@
     {
         Raid,
         Dungeon,
-        Meeting
+        Event
     }
 }

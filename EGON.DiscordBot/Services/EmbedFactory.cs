@@ -34,7 +34,7 @@ namespace EGON.DiscordBot.Services
                         color = Color.Green;
                         break;
                     }
-                case EventType.Meeting:
+                case EventType.Event:
                     {
                         color = Color.Blue;
                         break;
@@ -64,7 +64,7 @@ namespace EGON.DiscordBot.Services
 
             if (attendees != null)
             {
-                if (ecEvent.EventType == EventType.Meeting)
+                if (ecEvent.EventType == EventType.Event)
                 {
                     IEnumerable<AttendeeRecord> attending = attendees.Where(e => e.Role.ToLower() == "attendee");
 

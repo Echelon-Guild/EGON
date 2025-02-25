@@ -175,8 +175,8 @@ namespace EGON.DiscordBot.Modules
             _requestWorkingCache.Add(request.Id, request);
         }
 
-        [SlashCommand("meeting", "Schedule a Meeting")]
-        public async Task Meeting(string name, string description, IAttachment? image = null)
+        [SlashCommand("event", "Schedule a non-WoW event")]
+        public async Task Event(string name, string description, IAttachment? image = null)
         {
             ulong requestId = GetNextAvailableRequestId();
 
@@ -184,7 +184,7 @@ namespace EGON.DiscordBot.Modules
 
             request.Name = name;
             request.Id = GetNextAvailableRequestId();
-            request.EventType = EventType.Meeting;
+            request.EventType = EventType.Event;
             request.Description = description;
 
             if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
@@ -592,7 +592,7 @@ namespace EGON.DiscordBot.Modules
 
             IUserMessage message;
 
-            if (scheduleEventRequest.EventType == EventType.Meeting)
+            if (scheduleEventRequest.EventType == EventType.Event)
                 message = await RespondToMeetingEventAsync(event_);
             else
                 message = await RespondToGameEventAsync(event_);
