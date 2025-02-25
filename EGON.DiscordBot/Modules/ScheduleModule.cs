@@ -89,7 +89,7 @@ namespace EGON.DiscordBot.Modules
         // I tried to keep things in order.
 
         [SlashCommand("mythic", "Schedule a Mythic+")]
-        public async Task Mythic(string name, string description, IAttachment image)
+        public async Task Mythic(string name, string description, IAttachment? image = null)
         {
             if (!_storageService.IsApprovedCaller(Context.User.Username, "mythic"))
             {
@@ -122,9 +122,14 @@ namespace EGON.DiscordBot.Modules
             {
                 await RespondToTypeSelected(request.Id);
             }
-            
 
-            string imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = "https://storeechbotpublic.blob.core.windows.net/echelon-bot-public-images/Echelon-Logo.png";
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
 
             request.ImageUrl = imageUrl;
 
@@ -175,7 +180,7 @@ namespace EGON.DiscordBot.Modules
         }
 
         [SlashCommand("event", "Schedule a non-WoW event")]
-        public async Task Event(string name, string description, IAttachment image)
+        public async Task Event(string name, string description, IAttachment? image = null)
         {
             if (!_storageService.IsApprovedCaller(Context.User.Username, "event"))
             {
@@ -210,7 +215,12 @@ namespace EGON.DiscordBot.Modules
             }
 
 
-            string imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
+            string imageUrl;
+
+            if (image is null)
+                imageUrl = "https://storeechbotpublic.blob.core.windows.net/echelon-bot-public-images/Echelon-Logo.png";
+            else
+                imageUrl = (await _blobUploadService.UploadBlobAsync(image, "echelon-bot-public-images")).ToString();
 
             request.ImageUrl = imageUrl;
 
