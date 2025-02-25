@@ -91,6 +91,11 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("mythic", "Schedule a Mythic+")]
         public async Task Mythic(string name, string description, IAttachment image)
         {
+            if (!_storageService.IsApprovedCaller(Context.User.Username, "mythic"))
+            {
+                await RespondAsync("You are not authorized to create dungeons! Sorry!", ephemeral: true);
+            }    
+
             ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
@@ -129,6 +134,11 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("raid", "Schedule a Raid")]
         public async Task Raid(string name, string description, IAttachment image)
         {
+            if (!_storageService.IsApprovedCaller(Context.User.Username, "mythic"))
+            {
+                await RespondAsync("You are not authorized to create raids! Sorry!", ephemeral: true);
+            }
+
             ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();
@@ -167,6 +177,11 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("event", "Schedule a non-WoW event")]
         public async Task Event(string name, string description, IAttachment image)
         {
+            if (!_storageService.IsApprovedCaller(Context.User.Username, "event"))
+            {
+                await RespondAsync("You are not authorized to create events! Sorry!", ephemeral: true);
+            }
+
             ulong requestId = GetNextAvailableRequestId();
 
             ScheduleEventRequest request = new();

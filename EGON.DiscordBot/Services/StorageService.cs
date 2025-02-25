@@ -2,6 +2,7 @@
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Utility;
+using System.Collections;
 
 namespace EGON.DiscordBot.Services
 {
@@ -15,6 +16,7 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _wowCharacterTable;
         private readonly TableClient _wowInstanceInfoTable;
         private readonly TableClient _wowTeamTable;
+        private readonly TableClient _approvedCallerTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -41,6 +43,28 @@ namespace EGON.DiscordBot.Services
 
             _wowTeamTable = tableServiceClient.GetTableClient(TableNames.TEAM_TABLE_NAME);
             _wowTeamTable.CreateIfNotExists();
+
+            _approvedCallerTable = tableServiceClient.GetTableClient(TableNames.APPROVED_CALLER_TABLE_NAME);
+            _approvedCallerTable.CreateIfNotExists();
+        }
+
+        // Approved caller
+        public bool IsApprovedCaller(string discordUserName, string commandName)
+        {
+            if (string.IsNullOrWhiteSpace(discordUserName))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(commandName))
+                return false;
+
+            if (discordUserName == "chris068367")
+                return true;
+
+            string commandNameToLower = commandName.ToLower();
+
+            IEnumerable<ApprovedCallerEntity>? approvedCallers = _approvedCallerTable.Query<ApprovedCallerEntity>(e => e.DiscordUserName == discordUserName && (e.AuthorizedToCallCommandName == commandName || e.AuthorizedToCallCommandName == "all"));
+
+            return approvedCallers?.Any() ?? false;
         }
 
         // Events
