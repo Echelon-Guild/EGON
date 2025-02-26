@@ -10,5 +10,6 @@
         public const string EMOTE_TABLE_NAME = "StoredEmotes";
         public const string TEAM_TABLE_NAME = "Teams";
         public const string WOW_CHARACTER_TABLE_NAME = "WoWCharacters";
+        public const string APPROVED_CALLER_TABLE_NAME = "ApprovedCallers";
     }
 }

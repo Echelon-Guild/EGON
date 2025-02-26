@@ -1,13 +1,10 @@
-﻿using EGON.Blazor.Data;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OAuth;
+﻿using Azure.Data.Tables;
+using EGON.Blazor.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Collections.Generic;
-using EGON.Blazor.Services;
-using Azure.Data.Tables;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +21,8 @@ builder.Services.AddSingleton(provider =>
 });
 
 builder.Services.AddSingleton<StorageService>();
+
+builder.Services.AddMudServices();
 
 // Configure authentication.
 builder.Services.AddAuthentication(options =>
