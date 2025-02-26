@@ -14,6 +14,8 @@
     <base href="~/" />
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link href="css/site.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 </head>
 <body>
     <app>
@@ -30,7 +32,28 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
-
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.server.js"></script>
+    <script>
+        function formatEventTimes() {
+            document.querySelectorAll('.event-time').forEach(function(el) {
+                var utcDateStr = el.getAttribute('data-utc');
+                if (!utcDateStr) return; // Skip if attribute is missing
+
+                var localDate = new Date(utcDateStr);
+
+                // Define options for the date part and the time part
+                const optionsDate = { weekday: 'long', month: 'numeric', day: 'numeric', year: 'numeric' };
+                const optionsTime = { hour: 'numeric', minute: 'numeric', hour12: true };
+
+                // Format the date and time separately
+                const formattedDate = localDate.toLocaleDateString('en-US', optionsDate);
+                const formattedTime = localDate.toLocaleTimeString('en-US', optionsTime);
+
+                // Combine into the desired format
+                el.textContent = `${formattedDate} at ${formattedTime}`;
+            });
+        }
+    </script>
 </body>
 </html>

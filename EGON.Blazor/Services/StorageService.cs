@@ -2,6 +2,7 @@
 using EGON.Blazor.Models;
 using EGON.Blazor.Models.Entities;
 using EGON.Blazor.Utility;
+using System.Collections;
 
 namespace EGON.Blazor.Services
 {
@@ -15,6 +16,7 @@ namespace EGON.Blazor.Services
         private readonly TableClient _wowCharacterTable;
         private readonly TableClient _wowInstanceInfoTable;
         private readonly TableClient _wowTeamTable;
+        private readonly TableClient _approvedCallerTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -41,6 +43,28 @@ namespace EGON.Blazor.Services
 
             _wowTeamTable = tableServiceClient.GetTableClient(TableNames.TEAM_TABLE_NAME);
             _wowTeamTable.CreateIfNotExists();
+
+            _approvedCallerTable = tableServiceClient.GetTableClient(TableNames.APPROVED_CALLER_TABLE_NAME);
+            _approvedCallerTable.CreateIfNotExists();
+        }
+
+        // Approved caller
+        public bool IsApprovedCaller(string discordUserName, string commandName)
+        {
+            if (string.IsNullOrWhiteSpace(discordUserName))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(commandName))
+                return false;
+
+            if (discordUserName == "chris068367")
+                return true;
+
+            string commandNameToLower = commandName.ToLower();
+
+            IEnumerable<ApprovedCallerEntity>? approvedCallers = _approvedCallerTable.Query<ApprovedCallerEntity>(e => e.DiscordUserName == discordUserName && (e.AuthorizedToCallCommandName == commandName || e.AuthorizedToCallCommandName == "all"));
+
+            return approvedCallers?.Any() ?? false;
         }
 
         // Events
@@ -55,6 +79,7 @@ namespace EGON.Blazor.Services
                 ImageUrl = ecEvent.ImageUrl,
                 EventId = ecEvent.Id.ToString(),
                 Organizer = ecEvent.Organizer,
+                OrganizerUserId = ecEvent.OrganizerUserId,
                 PartitionKey = ecEvent.EventType.ToString(),
                 RowKey = ecEvent.MessageId.ToString(),
                 MessageId = ecEvent.MessageId,
@@ -79,6 +104,7 @@ namespace EGON.Blazor.Services
                 ImageUrl = entity.ImageUrl,
                 MessageId = entity.MessageId,
                 Organizer = entity.Organizer,
+                OrganizerUserId = entity.OrganizerUserId,
                 EventType = Enum.Parse<EventType>(entity.PartitionKey),
                 Id = eventId,
                 MessageUrl = entity.MessageUrl
@@ -112,6 +138,7 @@ namespace EGON.Blazor.Services
                     ImageUrl = entity.ImageUrl,
                     MessageId = entity.MessageId,
                     Organizer = entity.Organizer,
+                    OrganizerUserId = entity.OrganizerUserId,
                     EventType = Enum.Parse<EventType>(entity.PartitionKey),
                     Id = ulong.Parse(entity.EventId),
                     MessageUrl = entity.MessageUrl
@@ -121,7 +148,7 @@ namespace EGON.Blazor.Services
             }
         }
 
-        public IEnumerable<EchelonEvent>? GetPastEvent()
+        public IEnumerable<EchelonEvent>? GetEventsToClose()
         {
             IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow);
 
@@ -136,6 +163,7 @@ namespace EGON.Blazor.Services
                     ImageUrl = entity.ImageUrl,
                     MessageId = entity.MessageId,
                     Organizer = entity.Organizer,
+                    OrganizerUserId = entity.OrganizerUserId,
                     EventType = Enum.Parse<EventType>(entity.PartitionKey),
                     Id = ulong.Parse(entity.EventId),
                     MessageUrl = entity.MessageUrl
@@ -143,6 +171,38 @@ namespace EGON.Blazor.Services
 
                 yield return echelonEvent;
             }
+        }
+
+        public async Task CancelEventAsync(ulong eventId)
+        {
+            EchelonEvent? ecEvent = GetEvent(eventId);
+
+            IEnumerable<AttendeeRecord>? attendees = GetAttendeeRecords(eventId);
+
+            IEnumerable<ScheduledMessage>? scheduledMessages = GetScheduledMessages(eventId);
+
+            if (ecEvent is not null)
+                await DeleteEventAsync(ecEvent);
+
+            List<Task> tasks = new();
+
+            if (attendees is not null && attendees.Any())
+            {
+                foreach (AttendeeRecord attendee in attendees)
+                {
+                    tasks.Add(DeleteAttendeeRecordAsync(attendee));
+                }
+            }
+
+            if (scheduledMessages is not null && scheduledMessages.Any())
+            {
+                foreach (ScheduledMessage message in scheduledMessages)
+                {
+                    tasks.Add(DeleteScheduledMessageAsync(message));
+                }
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         // Attendees
@@ -161,7 +221,8 @@ namespace EGON.Blazor.Services
                     DiscordDisplayName = record.DiscordDisplayName,
                     Role = record.Role,
                     Class = record.Class,
-                    Spec = record.Spec
+                    Spec = record.Spec,
+                    MinutesLate = record.MinutesLate
                 };
 
                 tasks.Add(_attendeeRecordTable.UpsertEntityAsync(entity));
@@ -180,7 +241,8 @@ namespace EGON.Blazor.Services
                 DiscordDisplayName = record.DiscordDisplayName,
                 Role = record.Role,
                 Class = record.Class,
-                Spec = record.Spec
+                Spec = record.Spec,
+                MinutesLate = record.MinutesLate
             };
 
             await _attendeeRecordTable.UpsertEntityAsync(entity);
@@ -199,7 +261,8 @@ namespace EGON.Blazor.Services
                     DiscordDisplayName = record.DiscordDisplayName,
                     Role = record.Role,
                     Class = record.Class,
-                    Spec = record.Spec
+                    Spec = record.Spec,
+                    MinutesLate = record.MinutesLate
                 };
 
                 yield return attendeeRecord;
@@ -300,6 +363,24 @@ namespace EGON.Blazor.Services
         public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId, ulong userId)
         {
             IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString() && e.UserId == userId.ToString());
+
+            foreach (ScheduledMessageEntity entity in entities)
+            {
+                var message = new ScheduledMessage()
+                {
+                    EventId = ulong.Parse(entity.EventId),
+                    Message = entity.Message,
+                    SendTime = entity.SendTime,
+                    UserId = ulong.Parse(entity.UserId)
+                };
+
+                yield return message;
+            }
+        }
+
+        public IEnumerable<ScheduledMessage>? GetScheduledMessages(ulong eventId)
+        {
+            IEnumerable<ScheduledMessageEntity>? entities = _scheduledMessageTable.Query<ScheduledMessageEntity>(e => e.EventId == eventId.ToString());
 
             foreach (ScheduledMessageEntity entity in entities)
             {

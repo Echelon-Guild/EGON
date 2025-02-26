@@ -12,6 +12,7 @@ namespace EGON.Blazor.Models.Entities
         public string Role { get; set; }
         public string? Class { get; set; }
         public string? Spec { get; set; }
+        public string? MinutesLate { get; set; }
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
