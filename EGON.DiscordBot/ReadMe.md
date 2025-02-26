@@ -10,7 +10,6 @@ Available commands are:
 ````
 /raid NAME DESCRIPTION IMAGE
 /mythic NAME DESCRIPTION IMAGE
-/meeting NAME DESCRIPTION IMAGE
 /event NAME DESCRIPTION IMAGE
 ````
 
