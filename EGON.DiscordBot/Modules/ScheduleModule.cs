@@ -699,7 +699,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
@@ -739,7 +739,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
@@ -780,7 +780,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
@@ -825,7 +825,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
@@ -851,7 +851,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
@@ -897,7 +897,7 @@ namespace EGON.DiscordBot.Modules
 
             if (event_ is null)
             {
-                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.");
+                await RespondAsync("This event isn't in the database. It was probably deleted. You can't respond to it.", ephemeral: true);
                 return;
             }
 
