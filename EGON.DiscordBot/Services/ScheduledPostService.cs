@@ -56,9 +56,33 @@ namespace EGON.DiscordBot.Services
 
                     Embed embed = _embedFactory.CreateEventEmbed(event_);
 
-                    RestUserMessage discordPost = await channel.SendMessageAsync(embed: embed);
+                    MessageComponent components;
+
+                    if (event_.EventType == EventType.Event)
+                    {
+                        components = new ComponentBuilder()
+                            .WithButton("Sign Up", $"signupmeeting_{event_.Id}", row: 0)
+                            .WithButton("Absence", $"absence_event_{event_.Id}", row: 0, style: ButtonStyle.Secondary)
+                            .WithButton("Tentative", $"tentative_event_{event_.Id}", row: 1, style: ButtonStyle.Secondary)
+                            .WithButton("Late", $"late_event_{event_.Id}", row: 1, style: ButtonStyle.Secondary)
+                            .Build();
+                    }
+                    else
+                    {
+                        components = new ComponentBuilder()
+                            .WithButton("Sign Up", $"signup_event_{event_.Id}", row: 0)
+                            .WithButton("Reset Spec", $"reset_class_{event_.Id}", row: 0, style: ButtonStyle.Danger)
+                            .WithButton("Absence", $"absence_event_{event_.Id}", row: 1, style: ButtonStyle.Secondary)
+                            .WithButton("Tentative", $"tentative_event_{event_.Id}", row: 1, style: ButtonStyle.Secondary)
+                            .WithButton("Late", $"late_event_{event_.Id}", row: 1, style: ButtonStyle.Secondary)
+                            .Build();
+                    }
+
+
+                    RestUserMessage discordPost = await channel.SendMessageAsync(embed: embed, components: components);
 
                     event_.MessageId = discordPost.Id;
+                    event_.MessageUrl = discordPost.GetJumpUrl();
 
                     await _storageService.UpsertEventAsync(event_);
 
@@ -67,8 +91,6 @@ namespace EGON.DiscordBot.Services
 
                 await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
             }
-
-            
         }
 
         private async Task Ready()
