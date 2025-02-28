@@ -1,8 +1,6 @@
 ﻿using Azure.Data.Tables;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
-using EGON.DiscordBot.Utility;
-using System.Collections;
 
 namespace EGON.DiscordBot.Services
 {
@@ -17,6 +15,7 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _wowInstanceInfoTable;
         private readonly TableClient _wowTeamTable;
         private readonly TableClient _approvedCallerTable;
+        private readonly TableClient _scheduledPostTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -46,6 +45,54 @@ namespace EGON.DiscordBot.Services
 
             _approvedCallerTable = tableServiceClient.GetTableClient(TableNames.APPROVED_CALLER_TABLE_NAME);
             _approvedCallerTable.CreateIfNotExists();
+
+            _scheduledPostTable = tableServiceClient.GetTableClient(TableNames.SCHEDULED_POST_TABLE_NAME);
+            _scheduledPostTable.CreateIfNotExists();
+        }
+
+        // Scheduled post
+        public async Task UpsertScheduledPostAsync(ScheduledPost scheduledPost)
+        {
+            var entity = new ScheduledPostEntity()
+            {
+                PartitionKey = "ScheduledPost",
+                RowKey = scheduledPost.EventId.ToString(),
+
+                ChannelId = scheduledPost.ChannelId,
+                EventId = scheduledPost.EventId,
+                SendTime = scheduledPost.SendTime
+            };
+
+            await _scheduledPostTable.UpsertEntityAsync(entity);
+        }
+
+        public IEnumerable<ScheduledPost>? GetPostsToSend()
+        { 
+            IEnumerable<ScheduledPostEntity> entities = _scheduledPostTable.Query<ScheduledPostEntity>(e => e.SendTime <= DateTime.UtcNow);
+
+            foreach (ScheduledPostEntity entity in entities)
+            {
+                var post = new ScheduledPost()
+                {
+                    ChannelId = entity.ChannelId,
+                    EventId = entity.EventId,
+                    SendTime = entity.SendTime
+                };
+
+                yield return post;
+            }
+        }
+
+        public async Task DeletePostAsync(ScheduledPost post)
+        {
+            // This avoids wonkiness in the table query.
+            string eventId = post.EventId.ToString();
+
+            ScheduledPostEntity? entity = _scheduledPostTable.Query<ScheduledPostEntity>(e => e.RowKey == eventId).FirstOrDefault();
+
+            if (entity is null) { return; }
+
+            await _scheduledPostTable.DeleteEntityAsync(entity);
         }
 
         // Approved caller
@@ -605,6 +652,5 @@ namespace EGON.DiscordBot.Services
 
             await _wowTeamTable.DeleteEntityAsync(entity);
         }
-
     }
 }

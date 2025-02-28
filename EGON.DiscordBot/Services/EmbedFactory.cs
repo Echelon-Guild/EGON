@@ -66,12 +66,18 @@ namespace EGON.DiscordBot.Services
 
             if (attendees != null)
             {
+                bool inlineMarker = true;
+
                 if (ecEvent.EventType == EventType.Event)
                 {
                     IEnumerable<AttendeeRecord> attending = attendees.Where(e => e.Role.ToLower() == "attendee");
 
                     if (attending.Any())
-                        embed.AddField($"✅ Attendees ({attending.Count()})", GetGenericEventAttendeeString(attending));
+                    {
+                        embed.AddField($"✅ Attendees ({attending.Count()})", GetGenericEventAttendeeString(attending), inlineMarker);
+                        inlineMarker = !inlineMarker;
+                    }
+                        
                 }
                 else
                 {
@@ -80,34 +86,56 @@ namespace EGON.DiscordBot.Services
                     IEnumerable<AttendeeRecord> mdps = attendees.Where(e => e.Role.ToLower() == "melee dps");
                     IEnumerable<AttendeeRecord> rdps = attendees.Where(e => e.Role.ToLower() == "ranged dps");
 
-
                     if (tanks.Any())
-                        embed.AddField($"🛡️ Tanks ({tanks.Count()})", GetGameEventAttendeeString(tanks));
+                    {
+                        embed.AddField($"🛡️ Tanks ({tanks.Count()})", GetGameEventAttendeeString(tanks), inline: inlineMarker);
+                        inlineMarker = !inlineMarker;
+                    }
 
                     if (healers.Any())
-                        embed.AddField($"❤️ Healers ({healers.Count()})", GetGameEventAttendeeString(healers));
-
+                    {
+                        embed.AddField($"❤️ Healers ({healers.Count()})", GetGameEventAttendeeString(healers), inline: inlineMarker);
+                        inlineMarker = !inlineMarker;
+                    }
+                        
                     if (mdps.Any())
-                        embed.AddField($"🗡️ Melee DPS ({mdps.Count()})", GetGameEventAttendeeString(mdps));
-
+                    {
+                        embed.AddField($"🗡️ Melee DPS ({mdps.Count()})", GetGameEventAttendeeString(mdps), inline: inlineMarker);
+                        inlineMarker = !inlineMarker;
+                    }
+                        
                     if (rdps.Any())
-                        embed.AddField($"🏹 Ranged DPS ({rdps.Count()})", GetGameEventAttendeeString(rdps));
+                    {
+                        embed.AddField($"🏹 Ranged DPS ({rdps.Count()})", GetGameEventAttendeeString(rdps), inline: inlineMarker);
+                        inlineMarker = !inlineMarker;
+                    }
+                        
                 }
 
                 IEnumerable<AttendeeRecord> absent = attendees.Where(e => e.Role.ToLower() == "absent");
 
                 if (absent.Any())
-                    embed.AddField($"❌ Absent ({absent.Count()})", GetGenericEventAttendeeString(absent));
-
+                {
+                    embed.AddField($"❌ Absent ({absent.Count()})", GetGenericEventAttendeeString(absent), inline: inlineMarker);
+                    inlineMarker = !inlineMarker;
+                }
+                    
                 IEnumerable<AttendeeRecord> tentative = attendees.Where(e => e.Role.ToLower() == "tentative");
 
                 if (tentative.Any())
-                    embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetGenericEventAttendeeString(tentative));
-
+                {
+                    embed.AddField($"\U0001f9c7 Tentative ({tentative.Count()})", GetGenericEventAttendeeString(tentative), inline: inlineMarker);
+                    inlineMarker = !inlineMarker;
+                }
+                    
                 IEnumerable<AttendeeRecord> late = attendees.Where(e => e.Role.ToLower() == "late");
 
                 if (late.Any())
-                    embed.AddField($"⏰ Late ({late.Count()})", GetEventLateString(late));
+                {
+                    embed.AddField($"⏰ Late ({late.Count()})", GetEventLateString(late), inline: inlineMarker);
+                    inlineMarker = !inlineMarker;
+                }
+                    
             }
 
             return embed.Build();
