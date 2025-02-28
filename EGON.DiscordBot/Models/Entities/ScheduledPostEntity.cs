@@ -14,5 +14,29 @@ namespace EGON.DiscordBot.Models.Entities
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
+
+        public ScheduledPostEntity() { }
+
+        public ScheduledPostEntity(ScheduledPost dto)
+        {
+            PartitionKey = "ScheduledPost";
+            RowKey = dto.EventId.ToString();
+
+            ChannelId = dto.ChannelId;
+            EventId = dto.EventId;
+            SendTime = dto.SendTime;
+        }
+
+        public ScheduledPost ToDTO()
+        {
+            var post = new ScheduledPost()
+            {
+                ChannelId = ChannelId,
+                EventId = EventId,
+                SendTime = SendTime
+            };
+
+            return post;
+        }
     }
 }

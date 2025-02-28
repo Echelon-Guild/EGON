@@ -13,5 +13,6 @@
         public DateTimeOffset EventDateTime { get; set; }
         public EventType EventType { get; set; }
         public string MessageUrl { get; set; }
+        public string EventId => Id.ToString();
     }
 }

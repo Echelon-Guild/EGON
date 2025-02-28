@@ -16,5 +16,31 @@ namespace EGON.DiscordBot.Models.Entities
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
+
+        public EchelonUserEntity() { }
+
+        public EchelonUserEntity(EchelonUser dto)
+        {
+            RowKey = dto.DiscordName;
+            DiscordName = dto.DiscordName;
+            DiscordDisplayName = dto.DiscordDisplayName;
+            TimeZone = dto.TimeZone;
+            Class = dto.Class;
+            Spec = dto.Spec;
+        }
+
+        public EchelonUser ToDTO()
+        {
+            var user = new EchelonUser()
+            {
+                DiscordName = DiscordName,
+                DiscordDisplayName = DiscordDisplayName,
+                TimeZone = TimeZone,
+                Class = Class,
+                Spec = Spec
+            };
+
+            return user;
+        }
     }
 }

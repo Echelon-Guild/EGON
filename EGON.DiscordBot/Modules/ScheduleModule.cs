@@ -1172,7 +1172,13 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertUserAsync(user);
 
-            IEnumerable<AttendeeRecord>? records = _storageService.GetAttendeeRecords(eventId).Where(e => e.DiscordName == Context.User.Username);
+            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
+
+            int attendeeCount = attendees.Count();
+            
+            IEnumerable<AttendeeRecord>? records = attendees?.Where(e => e.DiscordName == Context.User.Username);
+
+            int recordCount = records.Count();
 
             if (records is null)
             {

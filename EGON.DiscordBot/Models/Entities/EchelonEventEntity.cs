@@ -23,6 +23,45 @@ namespace EGON.DiscordBot.Models.Entities
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
+
+        public EchelonEventEntity() { }
+
+        public EchelonEventEntity(EchelonEvent dto)
+        {
+            PartitionKey = dto.EventType.ToString();
+            RowKey = dto.EventId;
+            EventName = dto.Name;
+            EventDescription = dto.Description;
+            EventDateTime = dto.EventDateTime;
+            Organizer = dto.Organizer;
+            OrganizerUserId = dto.OrganizerUserId;
+            ImageUrl = dto.ImageUrl;
+            Footer = dto.Footer;
+            MessageId = dto.MessageId;
+            MessageUrl = dto.MessageUrl;
+            EventId = dto.EventId;
+        }
+
+        public EchelonEvent ToDTO()
+        {
+            var ecEvent = new EchelonEvent()
+            {
+                Name = EventName,
+                Description = EventDescription,
+                EventDateTime = EventDateTime,
+                Organizer = Organizer,
+                OrganizerUserId = OrganizerUserId,
+                ImageUrl = ImageUrl,
+                Footer = Footer,
+                MessageId = MessageId,
+                MessageUrl = MessageUrl,
+                Id = ulong.Parse(EventId)
+            };
+
+            return ecEvent;
+        }
     }
+
+
 
 }

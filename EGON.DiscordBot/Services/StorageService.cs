@@ -13,7 +13,6 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _storedEmoteTable;
         private readonly TableClient _wowCharacterTable;
         private readonly TableClient _wowInstanceInfoTable;
-        private readonly TableClient _wowTeamTable;
         private readonly TableClient _approvedCallerTable;
         private readonly TableClient _scheduledPostTable;
 
@@ -40,9 +39,6 @@ namespace EGON.DiscordBot.Services
             _wowInstanceInfoTable = tableServiceClient.GetTableClient(TableNames.INSTANCE_TABLE_NAME);
             _wowInstanceInfoTable.CreateIfNotExists();
 
-            _wowTeamTable = tableServiceClient.GetTableClient(TableNames.TEAM_TABLE_NAME);
-            _wowTeamTable.CreateIfNotExists();
-
             _approvedCallerTable = tableServiceClient.GetTableClient(TableNames.APPROVED_CALLER_TABLE_NAME);
             _approvedCallerTable.CreateIfNotExists();
 
@@ -53,15 +49,7 @@ namespace EGON.DiscordBot.Services
         // Scheduled post
         public async Task UpsertScheduledPostAsync(ScheduledPost scheduledPost)
         {
-            var entity = new ScheduledPostEntity()
-            {
-                PartitionKey = "ScheduledPost",
-                RowKey = scheduledPost.EventId.ToString(),
-
-                ChannelId = scheduledPost.ChannelId,
-                EventId = scheduledPost.EventId,
-                SendTime = scheduledPost.SendTime
-            };
+            var entity = new ScheduledPostEntity(scheduledPost);
 
             await _scheduledPostTable.UpsertEntityAsync(entity);
         }
@@ -72,14 +60,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledPostEntity entity in entities)
             {
-                var post = new ScheduledPost()
-                {
-                    ChannelId = entity.ChannelId,
-                    EventId = entity.EventId,
-                    SendTime = entity.SendTime
-                };
-
-                yield return post;
+                yield return entity.ToDTO();
             }
         }
 
@@ -117,21 +98,7 @@ namespace EGON.DiscordBot.Services
         // Events
         public async Task UpsertEventAsync(EchelonEvent ecEvent)
         {
-            var entity = new EchelonEventEntity()
-            {
-                EventDateTime = ecEvent.EventDateTime,
-                EventDescription = ecEvent.Description,
-                EventName = ecEvent.Name,
-                Footer = ecEvent.Footer,
-                ImageUrl = ecEvent.ImageUrl,
-                EventId = ecEvent.Id.ToString(),
-                Organizer = ecEvent.Organizer,
-                OrganizerUserId = ecEvent.OrganizerUserId,
-                PartitionKey = ecEvent.EventType.ToString(),
-                RowKey = ecEvent.MessageId.ToString(),
-                MessageId = ecEvent.MessageId,
-                MessageUrl = ecEvent.MessageUrl
-            };
+            var entity = new EchelonEventEntity(ecEvent);
 
             await _eventTable.UpsertEntityAsync(entity);
         }
@@ -142,22 +109,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            var echelonEvent = new EchelonEvent()
-            {
-                EventDateTime = entity.EventDateTime,
-                Description = entity.EventDescription,
-                Name = entity.EventName,
-                Footer = entity.Footer,
-                ImageUrl = entity.ImageUrl,
-                MessageId = entity.MessageId,
-                Organizer = entity.Organizer,
-                OrganizerUserId = entity.OrganizerUserId,
-                EventType = Enum.Parse<EventType>(entity.PartitionKey),
-                Id = eventId,
-                MessageUrl = entity.MessageUrl
-            };
-
-            return echelonEvent;
+            return entity.ToDTO();
 
         }
 
@@ -176,22 +128,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (EchelonEventEntity entity in entities)
             {
-                var echelonEvent = new EchelonEvent()
-                {
-                    EventDateTime = entity.EventDateTime,
-                    Description = entity.EventDescription,
-                    Name = entity.EventName,
-                    Footer = entity.Footer,
-                    ImageUrl = entity.ImageUrl,
-                    MessageId = entity.MessageId,
-                    Organizer = entity.Organizer,
-                    OrganizerUserId = entity.OrganizerUserId,
-                    EventType = Enum.Parse<EventType>(entity.PartitionKey),
-                    Id = ulong.Parse(entity.EventId),
-                    MessageUrl = entity.MessageUrl
-                };
-
-                yield return echelonEvent;
+                yield return entity.ToDTO();
             }
         }
 
@@ -201,22 +138,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (EchelonEventEntity entity in entities)
             {
-                var echelonEvent = new EchelonEvent()
-                {
-                    EventDateTime = entity.EventDateTime,
-                    Description = entity.EventDescription,
-                    Name = entity.EventName,
-                    Footer = entity.Footer,
-                    ImageUrl = entity.ImageUrl,
-                    MessageId = entity.MessageId,
-                    Organizer = entity.Organizer,
-                    OrganizerUserId = entity.OrganizerUserId,
-                    EventType = Enum.Parse<EventType>(entity.PartitionKey),
-                    Id = ulong.Parse(entity.EventId),
-                    MessageUrl = entity.MessageUrl
-                };
-
-                yield return echelonEvent;
+                yield return entity.ToDTO();
             }
         }
 
@@ -260,17 +182,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (AttendeeRecord record in attendeeRecords)
             {
-                var entity = new AttendeeRecordEntity
-                {
-                    PartitionKey = record.EventId.ToString(),
-                    RowKey = record.DiscordName,
-                    DiscordName = record.DiscordName,
-                    DiscordDisplayName = record.DiscordDisplayName,
-                    Role = record.Role,
-                    Class = record.Class,
-                    Spec = record.Spec,
-                    MinutesLate = record.MinutesLate
-                };
+                var entity = new AttendeeRecordEntity(record);
 
                 tasks.Add(_attendeeRecordTable.UpsertEntityAsync(entity));
             }
@@ -280,17 +192,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertAttendeeAsync(AttendeeRecord record)
         {
-            var entity = new AttendeeRecordEntity
-            {
-                PartitionKey = record.EventId.ToString(),
-                RowKey = record.DiscordName,
-                DiscordName = record.DiscordName,
-                DiscordDisplayName = record.DiscordDisplayName,
-                Role = record.Role,
-                Class = record.Class,
-                Spec = record.Spec,
-                MinutesLate = record.MinutesLate
-            };
+            var entity = new AttendeeRecordEntity(record);
 
             await _attendeeRecordTable.UpsertEntityAsync(entity);
         }
@@ -301,24 +203,13 @@ namespace EGON.DiscordBot.Services
 
             foreach (AttendeeRecordEntity record in records)
             {
-                var attendeeRecord = new AttendeeRecord()
-                {
-                    EventId = ulong.Parse(record.PartitionKey),
-                    DiscordName = record.DiscordName,
-                    DiscordDisplayName = record.DiscordDisplayName,
-                    Role = record.Role,
-                    Class = record.Class,
-                    Spec = record.Spec,
-                    MinutesLate = record.MinutesLate
-                };
-
-                yield return attendeeRecord;
+                yield return record.ToDTO();
             }
         }
 
         public async Task DeleteAttendeeRecordAsync(AttendeeRecord record)
         {
-            AttendeeRecordEntity? entity = _attendeeRecordTable.Query<AttendeeRecordEntity>(e => e.RowKey == record.DiscordName && e.PartitionKey == record.EventId.ToString()).FirstOrDefault();
+            AttendeeRecordEntity? entity = _attendeeRecordTable.Query<AttendeeRecordEntity>(e => e.DiscordName == record.DiscordName && e.PartitionKey == record.EventId.ToString()).FirstOrDefault();
 
             if (entity is null) { return; }
 
@@ -329,17 +220,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertUserAsync(EchelonUser user)
         {
-            EchelonUserEntity entity = new()
-            {
-                PartitionKey = "Users",
-                RowKey = user.DiscordName,
-
-                Class = user.Class,
-                DiscordDisplayName = user.DiscordDisplayName,
-                DiscordName = user.DiscordName,
-                Spec = user.Spec,
-                TimeZone = user.TimeZone
-            };
+            var entity = new EchelonUserEntity(user);
 
             await _echelonUserTable.UpsertEntityAsync(entity);
         }
@@ -350,16 +231,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            EchelonUser user = new()
-            {
-                Class = entity.Class,
-                DiscordDisplayName = entity.DiscordDisplayName,
-                DiscordName = entity.DiscordName,
-                Spec = entity.Spec,
-                TimeZone = entity.TimeZone
-            };
-
-            return user;
+            return entity.ToDTO();
         }
 
         public async Task DeleteUserAsync(EchelonUser user)
@@ -393,16 +265,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertScheduledMessageAsync(ScheduledMessage message)
         {
-            ScheduledMessageEntity entity = new()
-            {
-                PartitionKey = "ScheduledMessages",
-                RowKey = message.EventId.ToString(),
-
-                EventId = message.EventId.ToString(),
-                Message = message.Message,
-                SendTime = message.SendTime,
-                UserId = message.UserId.ToString()
-            };
+            var entity = new ScheduledMessageEntity(message);
 
             await _scheduledMessageTable.UpsertEntityAsync(entity);
         }
@@ -413,15 +276,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                var message = new ScheduledMessage()
-                {
-                    EventId = ulong.Parse(entity.EventId),
-                    Message = entity.Message,
-                    SendTime = entity.SendTime,
-                    UserId = ulong.Parse(entity.UserId)
-                };
-
-                yield return message;
+                yield return entity.ToDTO();
             }
         }
 
@@ -431,15 +286,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                var message = new ScheduledMessage()
-                {
-                    EventId = ulong.Parse(entity.EventId),
-                    Message = entity.Message,
-                    SendTime = entity.SendTime,
-                    UserId = ulong.Parse(entity.UserId)
-                };
-
-                yield return message;
+                yield return entity.ToDTO();
             }
         }
 
@@ -460,16 +307,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                var message = new ScheduledMessage()
-                {
-                    EventId = ulong.Parse(entity.EventId),
-                    Message = entity.Message,
-                    SendTime = entity.SendTime,
-                    UserId = ulong.Parse(entity.UserId),
-                    EventUrl = entity.EventUrl
-                };
-
-                yield return message;
+                yield return entity.ToDTO();
             }
         }
 
@@ -477,15 +315,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertEmoteAsync(StoredEmote emote)
         {
-            StoredEmoteEntity entity = new()
-            {
-                PartitionKey = emote.ClassName,
-                RowKey = emote.SpecName,
-
-                ClassName = emote.ClassName,
-                SpecName = emote.SpecName,
-                EmoteID = emote.EmoteID
-            };
+            var entity = new StoredEmoteEntity(emote);
 
             await _storedEmoteTable.UpsertEntityAsync(entity);
         }
@@ -496,14 +326,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            StoredEmote emote = new()
-            {
-                EmoteID = entity.EmoteID,
-                ClassName = entity.ClassName,
-                SpecName = entity.SpecName
-            };
-
-            return emote;
+            return entity.ToDTO();
         }
 
         public async Task DeleteEmoteAsync(StoredEmote emote)
@@ -519,19 +342,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertWowCharacter(WoWCharacter wowCharacter)
         {
-            WoWCharacterEntity entity = new()
-            {
-                PartitionKey = wowCharacter.Class,
-                RowKey = wowCharacter.Id.ToString(),
-
-                CharacterName = wowCharacter.CharacterName,
-                CharacterRealm = wowCharacter.CharacterRealm,
-                Class = wowCharacter.Class,
-                Id = wowCharacter.Id,
-                OffSpec = wowCharacter.OffSpec,
-                RegisteredTo = wowCharacter.RegisteredTo,
-                Specialization = wowCharacter.Specialization
-            };
+            var entity = new WoWCharacterEntity(wowCharacter);
 
             await _wowCharacterTable.UpsertEntityAsync(entity);
         }
@@ -542,18 +353,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            WoWCharacter character = new()
-            {
-                Id = entity.Id,
-                CharacterName = characterName,
-                CharacterRealm = characterRealm,
-                Class = entity.Class,
-                OffSpec = entity.OffSpec,
-                RegisteredTo = entity.RegisteredTo,
-                Specialization = entity.Specialization
-            };
-
-            return character;
+            return entity.ToDTO();
         }
 
         public async Task DeleteCharacterAsync(string characterName, string characterRealm)
@@ -569,16 +369,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task UpsertInstanceInfo(WoWInstanceInfo instanceInfo)
         {
-            WoWInstanceInfoEntity entity = new()
-            {
-                PartitionKey = instanceInfo.InstanceType.ToString(),
-                RowKey = instanceInfo.Name,
-
-                ImageUrl = instanceInfo.ImageUrl,
-                InstanceType = instanceInfo.InstanceType,
-                Legacy = instanceInfo.Legacy,
-                Name = instanceInfo.Name
-            };
+            var entity = new WoWInstanceInfoEntity(instanceInfo);
 
             await _wowInstanceInfoTable.UpsertEntityAsync(entity);
         }
@@ -589,15 +380,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            WoWInstanceInfo instance = new()
-            {
-                ImageUrl = entity.ImageUrl,
-                InstanceType = entity.InstanceType,
-                Legacy = entity.Legacy,
-                Name = entity.Name
-            };
-
-            return instance;
+            return entity.ToDTO();
         }
 
         public async Task DeleteInstanceInfoAsync(string instanceName)
@@ -607,50 +390,6 @@ namespace EGON.DiscordBot.Services
             if (entity is null) { return; }
 
             await _wowInstanceInfoTable.DeleteEntityAsync(entity);
-        }
-
-
-        // WoW Team
-        public async Task UpsertTeamAsync(WoWTeam team)
-        {
-            WoWTeamEntity entity = new()
-            {
-                PartitionKey = "",
-                RowKey = "",
-
-                Description = team.Description,
-                DisplayName = team.DisplayName,
-                ForInstanceType = team.ForInstanceType,
-                Name = team.Name
-            };
-
-            await _wowTeamTable.UpsertEntityAsync(entity);
-        }
-
-        public WoWTeam? GetTeam(string teamName)
-        {
-            WoWTeamEntity? entity = _wowTeamTable.Query<WoWTeamEntity>(e => e.Name == teamName).FirstOrDefault();
-
-            if (entity is null) { return null; }
-
-            WoWTeam team = new()
-            {
-                ForInstanceType = entity.ForInstanceType,
-                Name = entity.Name,
-                Description = entity.Description,
-                DisplayName = entity.DisplayName
-            };
-
-            return team;
-        }
-
-        public async Task DeleteTeamAsync(string teamName)
-        {
-            WoWTeamEntity? entity = _wowTeamTable.Query<WoWTeamEntity>(e => e.Name == teamName).FirstOrDefault();
-
-            if (entity is null) { return; }
-
-            await _wowTeamTable.DeleteEntityAsync(entity);
         }
     }
 }
