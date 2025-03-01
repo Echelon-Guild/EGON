@@ -58,6 +58,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<ScheduledMessageService>();
 
         services.AddHostedService<ScheduledPostService>();
+
+        services.AddHostedService<EventCleanupService>();
     })
     .Build();
 

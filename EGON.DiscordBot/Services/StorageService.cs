@@ -134,7 +134,7 @@ namespace EGON.DiscordBot.Services
 
         public IEnumerable<EchelonEvent>? GetEventsToClose()
         {
-            IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow);
+            IEnumerable<EchelonEventEntity>? entities = _eventTable.Query<EchelonEventEntity>(e => e.EventDateTime <= DateTimeOffset.UtcNow && !e.Closed);
 
             foreach (EchelonEventEntity entity in entities)
             {

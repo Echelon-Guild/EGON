@@ -83,6 +83,7 @@ namespace EGON.DiscordBot.Services
 
                     event_.MessageId = discordPost.Id;
                     event_.MessageUrl = discordPost.GetJumpUrl();
+                    event_.ChannelId = post.ChannelId;
 
                     await _storageService.UpsertEventAsync(event_);
 

@@ -15,10 +15,13 @@ namespace EGON.DiscordBot.Models.Entities
         public string ImageUrl { get; set; }
         public string Footer { get; set; }
         public ulong MessageId { get; set; }
+        public ulong ChannelId { get; set; }
         public string MessageUrl { get; set; }
 
         // This HAS to be a string for the query, a ulong fails to convert properly
         public string EventId { get; set; }
+
+        public bool Closed { get; set; }
 
 
         public ETag ETag { get; set; }
@@ -38,8 +41,10 @@ namespace EGON.DiscordBot.Models.Entities
             ImageUrl = dto.ImageUrl;
             Footer = dto.Footer;
             MessageId = dto.MessageId;
+            ChannelId = dto.ChannelId;
             MessageUrl = dto.MessageUrl;
             EventId = dto.EventId;
+            Closed = dto.Closed;
         }
 
         public EchelonEvent ToDTO()
@@ -56,7 +61,9 @@ namespace EGON.DiscordBot.Models.Entities
                 MessageId = MessageId,
                 MessageUrl = MessageUrl,
                 Id = ulong.Parse(EventId),
-                EventType = Enum.Parse<EventType>(PartitionKey)
+                EventType = Enum.Parse<EventType>(PartitionKey),
+                Closed = Closed,
+                ChannelId = ChannelId
             };
 
             return ecEvent;

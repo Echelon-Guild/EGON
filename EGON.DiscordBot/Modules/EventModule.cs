@@ -816,7 +816,7 @@ namespace EGON.DiscordBot.Modules
             }
 
             // Retrieve the Discord message
-            var channel = Context.Client.GetChannel(Context.Channel.Id) as IMessageChannel;
+            var channel = Context.Client.GetChannel(event_.ChannelId) as IMessageChannel;
             var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
 
             if (message is null)
