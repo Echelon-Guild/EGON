@@ -8,7 +8,6 @@ using System.Text;
 
 namespace EGON.DiscordBot.Services
 {
-    [DefaultMemberPermissions(GuildPermission.SendMessages)]
     public class EmbedFactory
     {
         private EmoteFinder _emoteFinder;

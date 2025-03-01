@@ -55,7 +55,8 @@ namespace EGON.DiscordBot.Models.Entities
                 Footer = Footer,
                 MessageId = MessageId,
                 MessageUrl = MessageUrl,
-                Id = ulong.Parse(EventId)
+                Id = ulong.Parse(EventId),
+                EventType = Enum.Parse<EventType>(PartitionKey)
             };
 
             return ecEvent;

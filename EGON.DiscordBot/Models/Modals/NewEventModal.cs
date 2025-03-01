@@ -4,7 +4,7 @@ namespace EGON.DiscordBot.Models.Modals
 {
     public class NewEventModal : IModal
     {
-        public string Title => "Create a new raid";
+        public string Title => "Create a new event";
 
         [InputLabel("Name")]
         [ModalTextInput("Name")]

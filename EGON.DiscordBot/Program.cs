@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs;
 using Discord.Interactions;
 using Discord.WebSocket;
+using EGON.DiscordBot;
 using EGON.DiscordBot.Services;
 using EGON.DiscordBot.Services.WoW;
 using Microsoft.Extensions.Configuration;
