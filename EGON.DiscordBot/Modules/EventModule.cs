@@ -171,6 +171,12 @@ namespace EGON.DiscordBot.Modules
         [ModalInteraction("new_event_modal_*")]
         public async Task HandleNewEventModal(string customId, NewEventModal modal)
         {
+            if (modal.DateTimeOfEvent < DateTime.UtcNow)
+            {
+                await RespondAsync("Can't schedule an event in the past!", ephemeral: true);
+                return;
+            }
+
             await RespondAsync("Scheduling now!", ephemeral: true);
 
             ulong eventId = ulong.Parse(customId);
@@ -863,6 +869,12 @@ namespace EGON.DiscordBot.Modules
                 return;
             }
 
+            if (event_.Closed)
+            {
+                await RespondAsync("Event is already closed! It can't be cancelled.", ephemeral: true);
+                return;
+            }
+
             var areYouSureDropdown = new SelectMenuBuilder()
                 .WithCustomId($"cancel_event_{id}")
                 .WithPlaceholder("Are you sure?")
@@ -898,10 +910,7 @@ namespace EGON.DiscordBot.Modules
         // Things that should probably go elsewhere
         private string CreateReminderMessage(EchelonEvent ecEvent)
         {
-            if (ecEvent.EventDateTime > DateTime.UtcNow)
-                return $"You're late!\nEvent {ecEvent.Name} was {(ecEvent.EventDateTime - DateTime.UtcNow).Minutes} minutes ago at <t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
-
-            return $"Reminder!\nYou have the event {ecEvent.Name} in 30 minutes!\n<t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>!";
+            return $"Reminder!\nYou are signed up for the event {ecEvent.Name}!\n<t:{ecEvent.EventDateTime.ToUnixTimeSeconds()}:F>";
         }
 
         [ComponentInteraction("reset_class_*")]
@@ -974,6 +983,5 @@ namespace EGON.DiscordBot.Modules
 
             await RespondAsync("Your time zone info has been cleared.", ephemeral: true);
         }
-
     }
 }
