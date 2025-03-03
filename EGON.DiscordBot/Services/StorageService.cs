@@ -15,6 +15,7 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _wowInstanceInfoTable;
         private readonly TableClient _approvedCallerTable;
         private readonly TableClient _scheduledPostTable;
+        private readonly TableClient _egonSettingsTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -44,7 +45,35 @@ namespace EGON.DiscordBot.Services
 
             _scheduledPostTable = tableServiceClient.GetTableClient(TableNames.SCHEDULED_POST_TABLE_NAME);
             _scheduledPostTable.CreateIfNotExists();
+
+            _egonSettingsTable = tableServiceClient.GetTableClient(TableNames.EGON_SETTINGS_TABLE_NAME);
+            _egonSettingsTable.CreateIfNotExists();
         }
+
+        // EGON Settings
+        public async Task UpsertEGONSettingAsync(EGONSetting setting)
+        {
+            var entity = new EGONSettingEntity(setting);
+
+            await _egonSettingsTable.UpsertEntityAsync(entity);
+        }
+
+        public EGONSetting? GetSetting(string name)
+        {
+            EGONSettingEntity? entity = _egonSettingsTable.Query<EGONSettingEntity>(e => e.Name == name).FirstOrDefault();
+
+            return entity?.ToDTO();
+        }
+
+        public async Task DeleteSettingAsync(EGONSetting setting)
+        {
+            EGONSettingEntity? entity = _egonSettingsTable.Query<EGONSettingEntity>(e => e.Name == setting.Name).FirstOrDefault();
+
+            if (entity is null) { return; }
+
+            await _egonSettingsTable.DeleteEntityAsync(entity);
+        }
+
 
         // Scheduled post
         public async Task UpsertScheduledPostAsync(ScheduledPost scheduledPost)
@@ -77,6 +106,7 @@ namespace EGON.DiscordBot.Services
         }
 
         // Approved caller
+
         public bool IsApprovedCaller(string discordUserName, string commandName)
         {
             if (string.IsNullOrWhiteSpace(discordUserName))
@@ -96,6 +126,7 @@ namespace EGON.DiscordBot.Services
         }
 
         // Events
+
         public async Task UpsertEventAsync(EchelonEvent ecEvent)
         {
             var entity = new EchelonEventEntity(ecEvent);

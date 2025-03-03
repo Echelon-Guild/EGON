@@ -85,16 +85,16 @@ namespace EGON.DiscordBot.Services
                     bool rdpsAny = rdps.Any();
 
                     if (tanksAny)
-                        embed.AddField($"🛡️ Tanks ({tanks.Count()})", GetGameEventAttendeeString(tanks), inline: true);
+                        embed.AddField($"🛡️ Tanks ({tanks.Count()})", GetGameEventAttendeeString(tanks));
 
                     if (healersAny)
-                        embed.AddField($"❤️ Healers ({healers.Count()})", GetGameEventAttendeeString(healers), inline: true);
+                        embed.AddField($"❤️ Healers ({healers.Count()})", GetGameEventAttendeeString(healers));
 
                     if (mdpsAny)
-                        embed.AddField($"🗡️ Melee DPS ({mdps.Count()})", GetGameEventAttendeeString(mdps), inline: true);
+                        embed.AddField($"🗡️ Melee DPS ({mdps.Count()})", GetGameEventAttendeeString(mdps));
 
                     if (rdpsAny)
-                        embed.AddField($"🏹 Ranged DPS ({rdps.Count()})", GetGameEventAttendeeString(rdps), inline: true);
+                        embed.AddField($"🏹 Ranged DPS ({rdps.Count()})", GetGameEventAttendeeString(rdps));
 
                 }
 

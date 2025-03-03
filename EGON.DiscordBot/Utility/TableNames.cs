@@ -11,5 +11,6 @@
         public const string WOW_CHARACTER_TABLE_NAME = "WoWCharacters";
         public const string APPROVED_CALLER_TABLE_NAME = "ApprovedCallers";
         public const string SCHEDULED_POST_TABLE_NAME = "ScheduledPosts";
+        public const string EGON_SETTINGS_TABLE_NAME = "EGONSettings";
     }
 }

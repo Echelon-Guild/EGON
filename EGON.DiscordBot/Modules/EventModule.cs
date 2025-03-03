@@ -35,7 +35,7 @@ namespace EGON.DiscordBot.Modules
 
             ulong eventId = (ulong)Random.Shared.Next();
 
-            if (!_storageService.IsUserRegisteredToSignUpToWoWEvents(Context.User.Username))
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{eventId}")
@@ -59,8 +59,8 @@ namespace EGON.DiscordBot.Modules
             };
 
             if (image is null)
-            { 
-                request.ImageUrl = "https://storeechbotpublic.blob.core.windows.net/echelon-bot-public-images/Screenshot_2025-02-25_163923.png"; 
+            {
+                request.ImageUrl = _storageService.GetSetting("default-mythic")?.Value ?? Context.User.GetAvatarUrl();
             }
             else
             {
@@ -83,7 +83,7 @@ namespace EGON.DiscordBot.Modules
 
             ulong eventId = (ulong)Random.Shared.Next();
 
-            if (!_storageService.IsUserRegisteredToSignUpToWoWEvents(Context.User.Username))
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{eventId}")
@@ -108,7 +108,7 @@ namespace EGON.DiscordBot.Modules
 
             if (image is null)
             {
-                request.ImageUrl = "https://storeechbotpublic.blob.core.windows.net/echelon-bot-public-images/Fade1.png";
+                request.ImageUrl = _storageService.GetSetting("default-mythic")?.Value ?? Context.User.GetAvatarUrl();
             }
             else
             {
@@ -131,7 +131,7 @@ namespace EGON.DiscordBot.Modules
 
             ulong eventId = (ulong)Random.Shared.Next();
 
-            if (!_storageService.IsUserRegisteredToSignUpToWoWEvents(Context.User.Username))
+            if (!_storageService.IsUserRegisteredToCreateEvents(Context.User.Username))
             {
                 var countryDropdown = new SelectMenuBuilder()
                     .WithCustomId($"country_selected_{eventId}")
@@ -156,7 +156,7 @@ namespace EGON.DiscordBot.Modules
 
             if (image is null)
             {
-                request.ImageUrl = "https://storeechbotpublic.blob.core.windows.net/echelon-bot-public-images/Fade1.png";
+                request.ImageUrl = _storageService.GetSetting("default-event")?.Value ?? Context.User.GetAvatarUrl();
             }
             else
             {
@@ -171,15 +171,25 @@ namespace EGON.DiscordBot.Modules
         [ModalInteraction("new_event_modal_*")]
         public async Task HandleNewEventModal(string customId, NewEventModal modal)
         {
-            if (modal.DateTimeOfEvent < DateTime.UtcNow)
+            ulong eventId = ulong.Parse(customId);
+
+            if (string.IsNullOrWhiteSpace(modal.Name))
             {
-                await RespondAsync("Can't schedule an event in the past!", ephemeral: true);
+                await RespondAsync("You didn't provide a name. Please try again.");
                 return;
             }
 
-            await RespondAsync("Scheduling now!", ephemeral: true);
+            if (string.IsNullOrWhiteSpace(modal.Description))
+            {
+                await RespondAsync("You didn't provide a description. Please try again.");
+                return;
+            }
 
-            ulong eventId = ulong.Parse(customId);
+            if (modal.DateTimeOfEvent == DateTime.MinValue)
+            {
+                await RespondAsync("You didn't provide a time. Please try again.");
+                return;
+            }
 
             string? organizerTimeZone = _storageService.GetUser(Context.User.Username)?.TimeZone;
 
@@ -203,6 +213,14 @@ namespace EGON.DiscordBot.Modules
             var offsetDateTime = zonedDateTime.ToOffsetDateTime();
 
             DateTimeOffset eventDateTime = offsetDateTime.ToDateTimeOffset();
+
+            if (eventDateTime < DateTime.UtcNow)
+            {
+                await RespondAsync("Can't schedule an event in the past!", ephemeral: true);
+                return;
+            }
+
+            await RespondAsync("Scheduling now!", ephemeral: true);
 
             string userDisplayName = Context.Guild.GetUser(Context.User.Id).DisplayName;
 
@@ -811,7 +829,7 @@ namespace EGON.DiscordBot.Modules
             return "Ranged DPS";
         }
 
-        public async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
+        private async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
         {
             // Retrieve event entity (including MessageId)
             EchelonEvent? event_ = _storageService.GetEvent(eventId);
@@ -903,8 +921,6 @@ namespace EGON.DiscordBot.Modules
             {
                 await RespondAsync("Phew. That was close.", ephemeral: true);
             }
-
-
         }
 
         // Things that should probably go elsewhere
@@ -982,6 +998,106 @@ namespace EGON.DiscordBot.Modules
             await _storageService.UpsertUserAsync(user);
 
             await RespondAsync("Your time zone info has been cleared.", ephemeral: true);
+        }
+
+        // Delete an event
+        [SlashCommand("delete", "Delete an event.")]
+        public async Task Delete(string eventId)
+        {
+            ulong id = ulong.Parse(eventId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(id);
+
+            if (event_ is null)
+            {
+                await RespondAsync($"No event found matching event id {eventId}", ephemeral: true);
+                return;
+            }
+
+            if (event_.OrganizerUserId != Context.User.Username)
+            {
+                await RespondAsync($"Doesn't look like that's one of your events. Only the organizer can delete an event.", ephemeral: true);
+                return;
+            }
+
+            if (event_.Closed)
+            {
+                await RespondAsync("Event is already closed! It can't be deleted now.", ephemeral: true);
+                return;
+            }
+
+            var areYouSureDropdown = new SelectMenuBuilder()
+                .WithCustomId($"delete_event_{id}")
+                .WithPlaceholder("Are you sure?")
+                .AddOption("Yes, I'm sure", "Yes")
+                .AddOption("No, I changed my mind.", "No");
+
+            var builder = new ComponentBuilder().WithSelectMenu(areYouSureDropdown);
+
+            await RespondAsync("Are you sure?", components: builder.Build(), ephemeral: true);
+        }
+
+        [ComponentInteraction("delete_event_*")]
+        public async Task HandleDeleteEvent(string customId, string yesOrNo)
+        {
+            if (yesOrNo != "Yes")
+            {
+                await RespondAsync("Phew. That was close.", ephemeral: true);
+                return;
+            }
+
+            ulong eventId = ulong.Parse(customId);
+
+            EchelonEvent? event_ = _storageService.GetEvent(eventId);
+
+            if (event_ is null)
+            {
+                await RespondAsync("I can't find that event! It was already deleted.", ephemeral: true);
+                return;
+            }
+
+            await RespondAsync("Event deletion in progress!", ephemeral: true);
+
+            var channel = Context.Client.GetChannel(event_.ChannelId) as IMessageChannel;
+            var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
+
+            await message.DeleteAsync();
+
+            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
+
+            List<Task> tasks = new();
+
+            if (attendees is not null && attendees.Any())
+            {
+                foreach (AttendeeRecord attendee in attendees)
+                {
+                    tasks.Add(_storageService.DeleteAttendeeRecordAsync(attendee));
+                }
+            }
+
+            IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId);
+
+            if (messages is not null && messages.Any())
+            {
+                foreach (ScheduledMessage schMessage in messages)
+                {
+                    tasks.Add(_storageService.DeleteScheduledMessageAsync(schMessage));
+                }
+            }
+
+            if (event_ is not null)
+            {
+                tasks.Add(_storageService.DeleteEventAsync(event_));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        // Edit an event
+        [SlashCommand("changedate", "Change the date of an event.")]
+        public async Task ChangeDate(string eventId)
+        {
+
         }
     }
 }

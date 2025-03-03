@@ -1,4 +1,5 @@
-﻿using Discord.Interactions;
+﻿using Discord;
+using Discord.Interactions;
 
 namespace EGON.DiscordBot.Models.Modals
 {
@@ -11,7 +12,7 @@ namespace EGON.DiscordBot.Models.Modals
         public string Name { get; set; }
 
         [InputLabel("Description")]
-        [ModalTextInput("Description")]
+        [ModalTextInput("Description", TextInputStyle.Paragraph)]
         public string Description { get; set; }
 
         [InputLabel("Date/Time of event")]
