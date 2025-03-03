@@ -60,6 +60,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<ScheduledPostService>();
 
         services.AddHostedService<EventCleanupService>();
+
+        services.AddSingleton<EmbedUpdateService>();
     })
     .Build();
 

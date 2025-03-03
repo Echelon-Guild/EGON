@@ -15,13 +15,13 @@ namespace EGON.DiscordBot.Modules
     {
         private readonly StorageService _storageService;
         private readonly BlobUploadService _blobUploadService;
-        private readonly EmbedFactory _embedFactory;
+        private readonly EmbedUpdateService _embedUpdateService;
 
-        public EditModuleCommands(StorageService storageService, BlobUploadService blobUploadService, EmbedFactory embedFactory)
+        public EditModuleCommands(StorageService storageService, BlobUploadService blobUploadService, EmbedUpdateService embedUpdateService)
         {
             _storageService = storageService;
             _blobUploadService = blobUploadService;
-            _embedFactory = embedFactory;
+            _embedUpdateService = embedUpdateService;
         }
 
         [SlashCommand("date", "Edit the date/time of an event")]
@@ -139,57 +139,19 @@ namespace EGON.DiscordBot.Modules
 
             event_.ImageUrl = blobUri.ToString();
 
-            await UpdateEventEmbed(id);
-        }
-
-        private async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
-        {
-            // Retrieve event entity (including MessageId)
-            EchelonEvent? event_ = _storageService.GetEvent(eventId);
-
-            if (event_ is null)
-            {
-                return;
-            }
-
-            // Retrieve the Discord message
-            var channel = Context.Client.GetChannel(event_.ChannelId) as IMessageChannel;
-            var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
-
-            if (message is null)
-            {
-                return;
-            }
-
-            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
-
-            Embed? embed;
-
-            if (cancelled)
-                embed = _embedFactory.CreateCancelledEventEmbed(event_);
-            else
-                embed = _embedFactory.CreateEventEmbed(event_, attendees);
-
-            // Modify the existing message with the updated embed
-            await message.ModifyAsync(msg =>
-            {
-                msg.Embed = embed;
-
-                if (cancelled)
-                    msg.Components = new ComponentBuilder().Build();
-            });
+            await _embedUpdateService.UpdateEventEmbed(id);
         }
     }
 
     public class EditModuleResponses : InteractionModuleBase<SocketInteractionContext>
     {
         private readonly StorageService _storageService;
-        private readonly EmbedFactory _embedFactory;
+        private readonly EmbedUpdateService _embedUpdateService;
 
-        public EditModuleResponses(StorageService storageService, EmbedFactory embedFactory)
+        public EditModuleResponses(StorageService storageService, EmbedUpdateService embedUpdateService)
         {
             _storageService = storageService;
-            _embedFactory = embedFactory;
+            _embedUpdateService = embedUpdateService;
         }
 
         [ModalInteraction("change_event_date_*")]
@@ -246,7 +208,7 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertEventAsync(event_);
 
-            await UpdateEventEmbed(event_.Id);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
         }
 
         [ModalInteraction("change_event_name_*")]
@@ -274,7 +236,7 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertEventAsync(event_);
 
-            await UpdateEventEmbed(event_.Id);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
         }
 
         [ModalInteraction("change_event_description_*")]
@@ -302,46 +264,7 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertEventAsync(event_);
 
-            await UpdateEventEmbed(event_.Id);
-        }
-
-        // This should be on it's own
-        private async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
-        {
-            // Retrieve event entity (including MessageId)
-            EchelonEvent? event_ = _storageService.GetEvent(eventId);
-
-            if (event_ is null)
-            {
-                return;
-            }
-
-            // Retrieve the Discord message
-            var channel = Context.Client.GetChannel(event_.ChannelId) as IMessageChannel;
-            var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
-
-            if (message is null)
-            {
-                return;
-            }
-
-            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
-
-            Embed? embed;
-
-            if (cancelled)
-                embed = _embedFactory.CreateCancelledEventEmbed(event_);
-            else
-                embed = _embedFactory.CreateEventEmbed(event_, attendees);
-
-            // Modify the existing message with the updated embed
-            await message.ModifyAsync(msg =>
-            {
-                msg.Embed = embed;
-
-                if (cancelled)
-                    msg.Components = new ComponentBuilder().Build();
-            });
+            await _embedUpdateService.UpdateEventEmbed(eventId);
         }
     }
 }

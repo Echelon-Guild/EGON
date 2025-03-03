@@ -13,14 +13,16 @@ namespace EGON.DiscordBot.Modules
         private readonly BlobUploadService _blobUploadService;
 
         private readonly EmbedFactory _embedFactory;
+        private readonly EmbedUpdateService _embedUpdateService;
 
         private static Dictionary<ulong, NewEventRequest> _inMemoryRequests = new();
 
-        public EventModule(StorageService storageService, BlobUploadService blobUploadService, EmbedFactory embedFactory)
+        public EventModule(StorageService storageService, BlobUploadService blobUploadService, EmbedFactory embedFactory, EmbedUpdateService embedUpdateService)
         {
             _storageService = storageService;
             _blobUploadService = blobUploadService;
             _embedFactory = embedFactory;
+            _embedUpdateService = embedUpdateService;
         }
 
         // Creating events
@@ -262,7 +264,6 @@ namespace EGON.DiscordBot.Modules
             };
 
             await _storageService.UpsertScheduledPostAsync(post);
-
         }
 
         [ComponentInteraction("country_selected_*")]
@@ -396,7 +397,8 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertAttendeeAsync(record);
 
-            await UpdateEventEmbed(eventId);
+            //await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             ScheduledMessage message = new()
             {
@@ -436,7 +438,8 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertAttendeeAsync(record);
 
-            await UpdateEventEmbed(eventId);
+            //await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
@@ -477,7 +480,8 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertAttendeeAsync(record);
 
-            await UpdateEventEmbed(eventId);
+            //await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
@@ -550,7 +554,7 @@ namespace EGON.DiscordBot.Modules
             };
 
             await _storageService.UpsertAttendeeAsync(record);
-            await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             IEnumerable<ScheduledMessage>? messages = _storageService.GetScheduledMessages(eventId, Context.User.Id);
 
@@ -611,7 +615,7 @@ namespace EGON.DiscordBot.Modules
 
                 await _storageService.UpsertAttendeeAsync(record);
 
-                await UpdateEventEmbed(eventId);
+                await _embedUpdateService.UpdateEventEmbed(eventId);
 
                 ScheduledMessage message = new()
                 {
@@ -783,7 +787,7 @@ namespace EGON.DiscordBot.Modules
 
             await _storageService.UpsertUserAsync(user);
 
-            await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             EchelonEvent? event_ = _storageService.GetEvent(eventId);
 
@@ -827,44 +831,6 @@ namespace EGON.DiscordBot.Modules
             if (healers.Contains(fullSpec)) return "Healer";
             if (mDps.Contains(fullSpec)) return "Melee DPS";
             return "Ranged DPS";
-        }
-
-        private async Task UpdateEventEmbed(ulong eventId, bool cancelled = false)
-        {
-            // Retrieve event entity (including MessageId)
-            EchelonEvent? event_ = _storageService.GetEvent(eventId);
-
-            if (event_ is null)
-            {
-                return;
-            }
-
-            // Retrieve the Discord message
-            var channel = Context.Client.GetChannel(event_.ChannelId) as IMessageChannel;
-            var message = await channel.GetMessageAsync(event_.MessageId) as IUserMessage;
-
-            if (message is null)
-            {
-                return;
-            }
-
-            IEnumerable<AttendeeRecord>? attendees = _storageService.GetAttendeeRecords(eventId);
-
-            Embed? embed;
-
-            if (cancelled)
-                embed = _embedFactory.CreateCancelledEventEmbed(event_);
-            else
-                embed = _embedFactory.CreateEventEmbed(event_, attendees);
-
-            // Modify the existing message with the updated embed
-            await message.ModifyAsync(msg =>
-            {
-                msg.Embed = embed;
-
-                if (cancelled)
-                    msg.Components = new ComponentBuilder().Build();
-            });
         }
 
         // Cancel an event
@@ -913,7 +879,7 @@ namespace EGON.DiscordBot.Modules
             {
                 await RespondAsync("Event cancelled!", ephemeral: true);
 
-                await UpdateEventEmbed(eventId, true);
+                await _embedUpdateService.UpdateEventEmbed(eventId, cancelled: true);
 
                 await _storageService.CancelEventAsync(eventId);
             }
@@ -976,7 +942,7 @@ namespace EGON.DiscordBot.Modules
                 }
             }
 
-            await UpdateEventEmbed(eventId);
+            await _embedUpdateService.UpdateEventEmbed(eventId);
 
             await RespondAsync("Got it. Just sign up and we'll save your new preference!", ephemeral: true);
         }
@@ -1091,13 +1057,6 @@ namespace EGON.DiscordBot.Modules
             }
 
             await Task.WhenAll(tasks);
-        }
-
-        // Edit an event
-        [SlashCommand("changedate", "Change the date of an event.")]
-        public async Task ChangeDate(string eventId)
-        {
-
         }
     }
 }
