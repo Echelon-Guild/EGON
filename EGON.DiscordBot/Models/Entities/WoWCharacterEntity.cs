@@ -35,7 +35,7 @@ namespace EGON.DiscordBot.Models.Entities
             OffSpec = dto.OffSpec;
         }
 
-        public WoWCharacter ToDTO()
+        public WoWCharacter ToDto()
         {
             var character = new WoWCharacter()
             {

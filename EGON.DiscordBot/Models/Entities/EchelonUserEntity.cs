@@ -29,7 +29,7 @@ namespace EGON.DiscordBot.Models.Entities
             Spec = dto.Spec;
         }
 
-        public EchelonUser ToDTO()
+        public EchelonUser ToDto()
         {
             var user = new EchelonUser()
             {

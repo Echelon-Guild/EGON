@@ -29,7 +29,7 @@ namespace EGON.DiscordBot.Models.Entities
             InstanceType = dto.InstanceType;
         }
 
-        public WoWInstanceInfo ToDTO()
+        public WoWInstanceInfo ToDto()
         {
             var instance = new WoWInstanceInfo()
             {

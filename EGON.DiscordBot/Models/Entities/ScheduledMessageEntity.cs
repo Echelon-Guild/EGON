@@ -33,7 +33,7 @@ namespace EGON.DiscordBot.Models.Entities
             UserId = dto.UserId.ToString();
         }
 
-        public ScheduledMessage ToDTO()
+        public ScheduledMessage ToDto()
         {
             var message = new ScheduledMessage()
             {

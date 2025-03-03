@@ -62,7 +62,7 @@ namespace EGON.DiscordBot.Modules
 
             if (image is null)
             {
-                request.ImageUrl = _storageService.GetSetting("default-mythic")?.Value ?? Context.User.GetAvatarUrl();
+                request.ImageUrl = _storageService.GetSetting("default-raid")?.Value ?? Context.User.GetAvatarUrl();
             }
             else
             {
@@ -226,12 +226,14 @@ namespace EGON.DiscordBot.Modules
 
             string userDisplayName = Context.Guild.GetUser(Context.User.Id).DisplayName;
 
+            Footer? footer = _storageService.GetRandomFooter();
+
             var event_ = new EchelonEvent()
             {
                 Description = modal.Description,
                 EventDateTime = eventDateTime,
                 EventType = _inMemoryRequests[eventId].EventType,
-                Footer = _embedFactory.GetRandomFooter(),
+                Footer = footer?.Value ?? string.Empty,
                 Id = eventId,
                 ImageUrl = _inMemoryRequests[eventId].ImageUrl,
                 Name = modal.Name,

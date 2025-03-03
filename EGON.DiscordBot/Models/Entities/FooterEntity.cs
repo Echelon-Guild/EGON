@@ -3,33 +3,29 @@ using Azure.Data.Tables;
 
 namespace EGON.DiscordBot.Models.Entities
 {
-    public class EGONSettingEntity : ITableEntity
+    public class FooterEntity : ITableEntity
     {
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
 
-        public string Name { get; set; }
         public string Value { get; set; }
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
 
-        public EGONSettingEntity() { }
+        public FooterEntity() { }
 
-        public EGONSettingEntity(EGONSetting dto)
+        public FooterEntity(Footer dto)
         {
-            PartitionKey = "Settings";
-            RowKey = dto.Name;
-
-            Name = dto.Name;
+            PartitionKey = "Footer";
+            RowKey = dto.Value;
             Value = dto.Value;
         }
 
-        public EGONSetting ToDto()
+        public Footer ToDto()
         {
-            var dto = new EGONSetting()
+            var dto = new Footer()
             {
-                Name = Name,
                 Value = Value
             };
 

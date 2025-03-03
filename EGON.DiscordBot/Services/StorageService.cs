@@ -16,6 +16,7 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _approvedCallerTable;
         private readonly TableClient _scheduledPostTable;
         private readonly TableClient _egonSettingsTable;
+        private readonly TableClient _footerTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -48,6 +49,54 @@ namespace EGON.DiscordBot.Services
 
             _egonSettingsTable = tableServiceClient.GetTableClient(TableNames.EGON_SETTINGS_TABLE_NAME);
             _egonSettingsTable.CreateIfNotExists();
+
+            _footerTable = tableServiceClient.GetTableClient(TableNames.FOOTER_TABLE_NAME);
+            _footerTable.CreateIfNotExists();
+        }
+
+        // Footers
+        public async Task UpsertFooterAsync(Footer footer)
+        {
+            var entity = new FooterEntity(footer);
+
+            await _footerTable.UpsertEntityAsync(entity);
+        }
+
+        public Footer? GetRandomFooter()
+        {
+            IEnumerable<FooterEntity>? entities = _footerTable.Query<FooterEntity>();
+
+            if (entities is null || !entities.Any())
+                return null;
+
+            List<FooterEntity> list = entities.ToList();
+
+            int numberOfEntities = entities.Count();
+
+            int myNumber = Random.Shared.Next(0, numberOfEntities);
+
+            Footer footer = list[myNumber].ToDto();
+
+            return footer;
+        }
+
+        public async Task DeleteFooterAsync(Footer footer)
+        {
+            FooterEntity? entity = _footerTable.Query<FooterEntity>(e => e.Value == footer.Value).FirstOrDefault();
+
+            if (entity is null) { return; }
+
+            await _footerTable.DeleteEntityAsync(entity);
+        }
+
+        public IEnumerable<Footer>? GetFooters()
+        {
+            IEnumerable<FooterEntity>? entities = _footerTable.Query<FooterEntity>();
+
+            foreach (FooterEntity entity in entities)
+            {
+                yield return entity.ToDto();
+            }
         }
 
         // EGON Settings
@@ -62,7 +111,7 @@ namespace EGON.DiscordBot.Services
         {
             EGONSettingEntity? entity = _egonSettingsTable.Query<EGONSettingEntity>(e => e.Name == name).FirstOrDefault();
 
-            return entity?.ToDTO();
+            return entity?.ToDto();
         }
 
         public async Task DeleteSettingAsync(EGONSetting setting)
@@ -89,7 +138,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledPostEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -140,7 +189,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            return entity.ToDTO();
+            return entity.ToDto();
 
         }
 
@@ -159,7 +208,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (EchelonEventEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -169,7 +218,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (EchelonEventEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -234,7 +283,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (AttendeeRecordEntity record in records)
             {
-                yield return record.ToDTO();
+                yield return record.ToDto();
             }
         }
 
@@ -262,7 +311,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            return entity.ToDTO();
+            return entity.ToDto();
         }
 
         public async Task DeleteUserAsync(EchelonUser user)
@@ -307,7 +356,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -317,7 +366,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -338,7 +387,7 @@ namespace EGON.DiscordBot.Services
 
             foreach (ScheduledMessageEntity entity in entities)
             {
-                yield return entity.ToDTO();
+                yield return entity.ToDto();
             }
         }
 
@@ -357,7 +406,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            return entity.ToDTO();
+            return entity.ToDto();
         }
 
         public async Task DeleteEmoteAsync(StoredEmote emote)
@@ -384,7 +433,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            return entity.ToDTO();
+            return entity.ToDto();
         }
 
         public async Task DeleteCharacterAsync(string characterName, string characterRealm)
@@ -411,7 +460,7 @@ namespace EGON.DiscordBot.Services
 
             if (entity is null) { return null; }
 
-            return entity.ToDTO();
+            return entity.ToDto();
         }
 
         public async Task DeleteInstanceInfoAsync(string instanceName)

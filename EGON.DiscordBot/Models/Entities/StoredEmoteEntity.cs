@@ -26,7 +26,7 @@ namespace EGON.DiscordBot.Models.Entities
             EmoteID = dto.EmoteID;
         }
 
-        public StoredEmote ToDTO()
+        public StoredEmote ToDto()
         {
             var emote = new StoredEmote()
             {

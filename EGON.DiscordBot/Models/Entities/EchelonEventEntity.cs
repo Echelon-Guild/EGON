@@ -47,7 +47,7 @@ namespace EGON.DiscordBot.Models.Entities
             Closed = dto.Closed;
         }
 
-        public EchelonEvent ToDTO()
+        public EchelonEvent ToDto()
         {
             var ecEvent = new EchelonEvent()
             {

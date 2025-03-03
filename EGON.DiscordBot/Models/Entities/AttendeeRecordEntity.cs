@@ -31,7 +31,7 @@ namespace EGON.DiscordBot.Models.Entities
             MinutesLate = dto.MinutesLate;
         }
 
-        public AttendeeRecord ToDTO()
+        public AttendeeRecord ToDto()
         {
             var attendeeRecord = new AttendeeRecord()
             {

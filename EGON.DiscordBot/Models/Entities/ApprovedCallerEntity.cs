@@ -25,7 +25,7 @@ namespace EGON.DiscordBot.Models.Entities
             AuthorizedToCallCommandName = dto.AuthorizedToCallCommandName;
         }
 
-        public ApprovedCaller ToDTO()
+        public ApprovedCaller ToDto()
         {
             var approvedCaller = new ApprovedCaller()
             {

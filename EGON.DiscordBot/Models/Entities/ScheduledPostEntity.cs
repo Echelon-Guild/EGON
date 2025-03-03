@@ -27,7 +27,7 @@ namespace EGON.DiscordBot.Models.Entities
             SendTime = dto.SendTime;
         }
 
-        public ScheduledPost ToDTO()
+        public ScheduledPost ToDto()
         {
             var post = new ScheduledPost()
             {
