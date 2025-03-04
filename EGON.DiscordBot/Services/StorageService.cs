@@ -17,6 +17,7 @@ namespace EGON.DiscordBot.Services
         private readonly TableClient _scheduledPostTable;
         private readonly TableClient _egonSettingsTable;
         private readonly TableClient _footerTable;
+        private readonly TableClient _wowEventLogTable;
 
         public StorageService(TableServiceClient tableServiceClient)
         {
@@ -52,6 +53,36 @@ namespace EGON.DiscordBot.Services
 
             _footerTable = tableServiceClient.GetTableClient(TableNames.FOOTER_TABLE_NAME);
             _footerTable.CreateIfNotExists();
+        }
+
+        // WoW Event Logs
+        public async Task UpsertWoWEventLogAsync(WoWEventLog log)
+        {
+            var entity = new WoWEventLogEntity(log);
+
+            await _wowEventLogTable.UpsertEntityAsync(entity);
+        }
+
+        public WoWEventLog? GetWoWEventLog(ulong eventId)
+        {
+            string eventIdString = eventId.ToString();
+
+            WoWEventLogEntity? entity = _wowEventLogTable.Query<WoWEventLogEntity>(e => e.RowKey == eventIdString).FirstOrDefault();
+
+            if (entity is null) { return null; }
+
+            return entity.ToDto();
+        }
+
+        public async Task DeleteWoWEventLog(WoWEventLog log)
+        {
+            string eventIdString = log.EventId.ToString();
+
+            WoWEventLogEntity? entity = _wowEventLogTable.Query<WoWEventLogEntity>(e => e.RowKey == eventIdString).FirstOrDefault();
+
+            if (entity is null) { return; }
+
+            await _wowEventLogTable.DeleteEntityAsync(entity);
         }
 
         // Footers
