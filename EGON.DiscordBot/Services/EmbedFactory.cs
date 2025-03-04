@@ -54,8 +54,8 @@ namespace EGON.DiscordBot.Services
                 .WithColor(color)
                 .AddField("Scheduled Time", timestamp)
                 .AddField("Event Type", ecEvent.EventType.ToString(), true)
-                .AddField("Organizer", ecEvent.Organizer, true)
-                .AddField("Event ID", ecEvent.Id);
+                .AddField("Organizer", ecEvent.Organizer, true);
+                
 
             if (withLink) { embed.AddField("Link", ecEvent.MessageUrl); }
 
@@ -114,6 +114,8 @@ namespace EGON.DiscordBot.Services
                     embed.AddField($"⏰ Late ({late.Count()})", GetEventLateString(late));
 
             }
+
+            embed.AddField("Event ID", ecEvent.Id);
 
             return embed.Build();
         }
@@ -204,28 +206,6 @@ namespace EGON.DiscordBot.Services
             }
 
             return "<:rocket:1234567890>";
-        }
-
-        public string GetRandomFooter()
-        {
-            string[] possibleFooters =
-            [
-                "Frenzied Regeneration",
-                "EggBoi",
-                "Having a Good Time",
-                "Zug Zug",
-                "Brain Cell",
-                "Stay Close to the Nipple",
-                "On me! On me!",
-                "MY BODY!",
-                "Witawy",
-                "Pet Pulling...",
-            ];
-
-            int footerToReturn = Random.Shared.Next(0, possibleFooters.Length);
-
-            return possibleFooters[footerToReturn];
-
         }
 
 

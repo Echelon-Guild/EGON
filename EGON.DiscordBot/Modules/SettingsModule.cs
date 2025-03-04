@@ -109,6 +109,12 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("add", "Add a possible event footer.")]
             public async Task AddFooter(string footer)
             {
+                if (!_storageService.IsApprovedCaller(Context.User.Username, "footer"))
+                {
+                    await RespondAsync("You aren't authorized to add or remove footers! Sorry!", ephemeral: true);
+                    return;
+                }
+
                 Footer item = new()
                 {
                     Value = footer
@@ -116,12 +122,18 @@ namespace EGON.DiscordBot.Modules
 
                 await _storageService.UpsertFooterAsync(item);
 
-                await RespondAsync("Added!");
+                await RespondAsync("Added!", ephemeral: true);
             }
 
             [SlashCommand("remove", "Remove a possible event footer.")]
             public async Task RemoveFooter(string footer)
             {
+                if (!_storageService.IsApprovedCaller(Context.User.Username, "footer"))
+                {
+                    await RespondAsync("You aren't authorized to add or remove footers! Sorry!", ephemeral: true);
+                    return;
+                }
+
                 Footer item = new()
                 {
                     Value = footer
@@ -129,7 +141,7 @@ namespace EGON.DiscordBot.Modules
 
                 await _storageService.DeleteFooterAsync(item);
 
-                await RespondAsync("Removed!");
+                await RespondAsync("Removed!", ephemeral: true);
             }
 
             [SlashCommand("list", "List the stored footers.")]

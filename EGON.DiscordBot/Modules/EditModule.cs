@@ -139,6 +139,8 @@ namespace EGON.DiscordBot.Modules
 
             event_.ImageUrl = blobUri.ToString();
 
+            await _storageService.UpsertEventAsync(event_);
+
             await _embedUpdateService.UpdateEventEmbed(id);
         }
     }
