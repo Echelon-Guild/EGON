@@ -120,6 +120,26 @@ namespace EGON.DiscordBot.Services
             await _footerTable.DeleteEntityAsync(entity);
         }
 
+        public Footer? GetFooter(Guid id)
+        {
+            var entity = _footerTable.Query<FooterEntity>(e => e.Id == id).FirstOrDefault();
+
+            if (entity is null)
+                return null;
+
+            return entity.ToDto();
+        }
+
+        public Footer? GetFooter(string value)
+        {
+            var entity = _footerTable.Query<FooterEntity>(e => e.Value == value).FirstOrDefault();
+
+            if (entity is null)
+                return null;
+
+            return entity.ToDto();
+        }
+
         public IEnumerable<Footer>? GetFooters()
         {
             IEnumerable<FooterEntity>? entities = _footerTable.Query<FooterEntity>();

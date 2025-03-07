@@ -65,5 +65,23 @@ namespace EGON.DiscordBot.Modules
 
 
         }
+
+        [SlashCommand("get", "Get an event log")]
+        public async Task GetLog(string eventId)
+        {
+            if (!ulong.TryParse(eventId, out ulong id))
+            {
+                await RespondAsync($"{eventId} isn't a valid event id.", ephemeral: true);
+                return;
+            }
+
+            WoWEventLog? log = _storageService.GetWoWEventLog(id);
+
+            if (log is null)
+            {
+                await RespondAsync("Couldn't find that log in the database. It was either not added yet, or deleted.", ephemeral: true);
+                return;
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ namespace EGON.DiscordBot.Models.Entities
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
 
+        public Guid Id { get; set; }
         public string Value { get; set; }
 
         public ETag ETag { get; set; }
@@ -18,7 +19,7 @@ namespace EGON.DiscordBot.Models.Entities
         public FooterEntity(Footer dto)
         {
             PartitionKey = "Footer";
-            RowKey = dto.Value;
+            RowKey = Id.ToString();
             Value = dto.Value;
         }
 
@@ -26,6 +27,7 @@ namespace EGON.DiscordBot.Models.Entities
         {
             var dto = new Footer()
             {
+                Id = Guid.Parse(RowKey),
                 Value = Value
             };
 

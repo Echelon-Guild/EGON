@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
 using EGON.DiscordBot.Models;
-using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Services;
 using System.Text;
 
@@ -115,8 +114,17 @@ namespace EGON.DiscordBot.Modules
                     return;
                 }
 
+                Footer? matchingFooter = _storageService.GetFooter(footer);
+
+                if (matchingFooter is not null)
+                {
+                    await RespondAsync("Footer with id {matchingFooter.Id} already has this text.", ephemeral: true);
+                    return;
+                }
+
                 Footer item = new()
                 {
+                    Id = Guid.NewGuid(),
                     Value = footer
                 };
 
@@ -126,20 +134,29 @@ namespace EGON.DiscordBot.Modules
             }
 
             [SlashCommand("remove", "Remove a possible event footer.")]
-            public async Task RemoveFooter(string footer)
+            public async Task RemoveFooter(string id)
             {
+                if (!Guid.TryParse(id, out Guid id_))
+                {
+                    await RespondAsync($"{id} is not a valid footer id.", ephemeral: true);
+                    return;
+                }
+
                 if (!_storageService.IsApprovedCaller(Context.User.Username, "footer"))
                 {
                     await RespondAsync("You aren't authorized to add or remove footers! Sorry!", ephemeral: true);
                     return;
                 }
 
-                Footer item = new()
-                {
-                    Value = footer
-                };
+                Footer? footer = _storageService.GetFooter(id_);
 
-                await _storageService.DeleteFooterAsync(item);
+                if (footer is null) 
+                {
+                    await RespondAsync("No footer found with that id", ephemeral: true);
+                    return; 
+                }
+
+                await _storageService.DeleteFooterAsync(footer);
 
                 await RespondAsync("Removed!", ephemeral: true);
             }
@@ -151,10 +168,40 @@ namespace EGON.DiscordBot.Modules
 
                 foreach (Footer item in _storageService.GetFooters() ?? [])
                 {
-                    sb.AppendLine(item.Value);
+                    sb.AppendLine($"{item.Id} - {item.Value}");
                 }
 
                 await RespondAsync(sb.ToString(), ephemeral: true);
+            }
+
+            [SlashCommand("update", "Update a stored footer with new text.")]
+            public async Task UpdateFooter(string id, string footer)
+            {
+                if (!Guid.TryParse(id, out Guid id_))
+                {
+                    await RespondAsync($"{id} is not a valid footer id.", ephemeral: true);
+                    return;
+                }
+
+                if (!_storageService.IsApprovedCaller(Context.User.Username, "footer"))
+                {
+                    await RespondAsync("You aren't authorized to add or remove footers! Sorry!", ephemeral: true);
+                    return;
+                }
+
+                Footer? item = _storageService.GetFooter(id_);
+
+                if (item is null)
+                {
+                    await RespondAsync("No footer found with that id", ephemeral: true);
+                    return;
+                }
+
+                item.Value = footer;
+
+                await _storageService.UpsertFooterAsync(item);
+
+                await RespondAsync("Updated!", ephemeral: true);
             }
         }
     }

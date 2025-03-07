@@ -12,16 +12,14 @@ namespace EGON.DiscordBot.Modules
         private readonly StorageService _storageService;
         private readonly BlobUploadService _blobUploadService;
 
-        private readonly EmbedFactory _embedFactory;
         private readonly EmbedUpdateService _embedUpdateService;
 
         private static Dictionary<ulong, NewEventRequest> _inMemoryRequests = new();
 
-        public EventModule(StorageService storageService, BlobUploadService blobUploadService, EmbedFactory embedFactory, EmbedUpdateService embedUpdateService)
+        public EventModule(StorageService storageService, BlobUploadService blobUploadService, EmbedUpdateService embedUpdateService)
         {
             _storageService = storageService;
             _blobUploadService = blobUploadService;
-            _embedFactory = embedFactory;
             _embedUpdateService = embedUpdateService;
         }
 
