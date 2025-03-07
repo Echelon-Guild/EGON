@@ -3,15 +3,14 @@ using Azure.Data.Tables;
 
 namespace EGON.DiscordBot.Models.Entities
 {
-    public class WoWTeamEntity : ITableEntity
+    public class RecurringEventEntity : ITableEntity
     {
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
 
-        public string Name { get; set; }
-        public string DisplayName { get; set; }
-        public string Description { get; set; }
-        public InstanceType ForInstanceType { get; set; }
+        public string EventName { get; set; }
+        public DateTimeOffset FirstEventDateTime { get; set; }
+        
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }

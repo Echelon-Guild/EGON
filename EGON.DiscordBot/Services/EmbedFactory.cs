@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.Interactions;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Entities;
 using EGON.DiscordBot.Models.WoWApiResponse;
@@ -8,7 +7,6 @@ using System.Text;
 
 namespace EGON.DiscordBot.Services
 {
-    [DefaultMemberPermissions(GuildPermission.SendMessages)]
     public class EmbedFactory
     {
         private EmoteFinder _emoteFinder;
@@ -56,8 +54,8 @@ namespace EGON.DiscordBot.Services
                 .WithColor(color)
                 .AddField("Scheduled Time", timestamp)
                 .AddField("Event Type", ecEvent.EventType.ToString(), true)
-                .AddField("Organizer", ecEvent.Organizer, true)
-                .AddField("Event ID", ecEvent.Id);
+                .AddField("Organizer", ecEvent.Organizer, true);
+                
 
             if (withLink) { embed.AddField("Link", ecEvent.MessageUrl); }
 
@@ -72,6 +70,7 @@ namespace EGON.DiscordBot.Services
 
                     if (attending.Any())
                         embed.AddField($"✅ Attendees ({attending.Count()})", GetGenericEventAttendeeString(attending));
+
                 }
                 else
                 {
@@ -80,18 +79,23 @@ namespace EGON.DiscordBot.Services
                     IEnumerable<AttendeeRecord> mdps = attendees.Where(e => e.Role.ToLower() == "melee dps");
                     IEnumerable<AttendeeRecord> rdps = attendees.Where(e => e.Role.ToLower() == "ranged dps");
 
+                    bool tanksAny = tanks.Any();
+                    bool healersAny = healers.Any();
+                    bool mdpsAny = mdps.Any();
+                    bool rdpsAny = rdps.Any();
 
-                    if (tanks.Any())
+                    if (tanksAny)
                         embed.AddField($"🛡️ Tanks ({tanks.Count()})", GetGameEventAttendeeString(tanks));
 
-                    if (healers.Any())
+                    if (healersAny)
                         embed.AddField($"❤️ Healers ({healers.Count()})", GetGameEventAttendeeString(healers));
 
-                    if (mdps.Any())
+                    if (mdpsAny)
                         embed.AddField($"🗡️ Melee DPS ({mdps.Count()})", GetGameEventAttendeeString(mdps));
 
-                    if (rdps.Any())
+                    if (rdpsAny)
                         embed.AddField($"🏹 Ranged DPS ({rdps.Count()})", GetGameEventAttendeeString(rdps));
+
                 }
 
                 IEnumerable<AttendeeRecord> absent = attendees.Where(e => e.Role.ToLower() == "absent");
@@ -108,7 +112,10 @@ namespace EGON.DiscordBot.Services
 
                 if (late.Any())
                     embed.AddField($"⏰ Late ({late.Count()})", GetEventLateString(late));
+
             }
+
+            embed.AddField("Event ID", ecEvent.Id);
 
             return embed.Build();
         }
@@ -199,28 +206,6 @@ namespace EGON.DiscordBot.Services
             }
 
             return "<:rocket:1234567890>";
-        }
-
-        public string GetRandomFooter()
-        {
-            string[] possibleFooters =
-            [
-                "Frenzied Regeneration",
-                "EggBoi",
-                "Having a Good Time",
-                "Zug Zug",
-                "Brain Cell",
-                "Stay Close to the Nipple",
-                "On me! On me!",
-                "MY BODY!",
-                "Witawy",
-                "Pet Pulling...",
-            ];
-
-            int footerToReturn = Random.Shared.Next(0, possibleFooters.Length);
-
-            return possibleFooters[footerToReturn];
-
         }
 
 

@@ -18,5 +18,38 @@ namespace EGON.DiscordBot.Models.Entities
 
         public ETag ETag { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
+
+        public WoWCharacterEntity() { }
+
+        public WoWCharacterEntity(WoWCharacter dto)
+        {
+            PartitionKey = dto.Class;
+            RowKey = dto.Id.ToString();
+
+            Id = dto.Id;
+            CharacterName = dto.CharacterName;
+            CharacterRealm = dto.CharacterRealm;
+            RegisteredTo = dto.RegisteredTo;
+            Class = dto.Class;
+            Specialization = dto.Specialization;
+            OffSpec = dto.OffSpec;
+        }
+
+        public WoWCharacter ToDto()
+        {
+            var character = new WoWCharacter()
+            {
+                Id = Id,
+                CharacterName = CharacterName,
+                CharacterRealm = CharacterRealm,
+                RegisteredTo = RegisteredTo,
+                Class = Class,
+                Specialization = Specialization,
+                OffSpec = OffSpec
+            };
+
+            return character;
+
+        }
     }
 }
