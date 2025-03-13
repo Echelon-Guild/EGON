@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Modals;

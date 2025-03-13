@@ -249,11 +249,11 @@ namespace EGON.DiscordBot.Modules
             }
             else if (event_.EventType == EventType.Dungeon)
             {
-                channelId = ulong.Parse(Environment.GetEnvironmentVariable("MYTHIC_SIGN_UP_CHANNEL_ID"));
+                channelId = ulong.Parse(Environment.GetEnvironmentVariable("MYTHIC_SIGN_UP_CHANNEL_ID") ?? throw new EnvironmentNotConfiguredException("MYTHIC_SIGN_UP_CHANNEL_ID"));
             }
             else
             {
-                channelId = ulong.Parse(Environment.GetEnvironmentVariable("RAID_SIGN_UP_CHANNEL_ID"));
+                channelId = ulong.Parse(Environment.GetEnvironmentVariable("RAID_SIGN_UP_CHANNEL_ID") ?? throw new EnvironmentNotConfiguredException("RAID_SIGN_UP_CHANNEL_ID"));
             }
 
             var post = new ScheduledPost()
