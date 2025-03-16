@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 using EGON.DiscordBot.Models;
 using EGON.DiscordBot.Models.Modals;
 using EGON.DiscordBot.Services;
@@ -27,6 +28,10 @@ namespace EGON.DiscordBot.Modules
         [SlashCommand("raid", "Create a new raid event")]
         public async Task Raid(IAttachment? image = null)
         {
+            SocketUser? user = Context.User;
+
+            var client = Context.Client;
+
             if (!_storageService.IsApprovedCaller(Context.User.Username, "raid"))
             {
                 await RespondAsync("You aren't authorized to create raids! Sorry!", ephemeral: true);

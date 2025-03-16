@@ -1,19 +1,21 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EGON.DiscordBot.Models.WarcraftLogs;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace EGON.DiscordBot.Services.WarcraftLogs
 {
-    public class WarcraftLogsService
+    public class WarcraftLogsApiService
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<WarcraftLogsService> _logger;
+        private readonly ILogger<WarcraftLogsApiService> _logger;
         private string? _accessToken;
         private DateTime _tokenExpiry;
 
-        public WarcraftLogsService(
+        public WarcraftLogsApiService(
             HttpClient httpClient,
-            ILogger<WarcraftLogsService> logger)
+            ILogger<WarcraftLogsApiService> logger)
         {
             _httpClient = httpClient;
             _logger = logger;
@@ -60,24 +62,45 @@ namespace EGON.DiscordBot.Services.WarcraftLogs
             return null;
         }
 
-        public async Task<T?> GetFromApiAsync<T>(string endpoint)
+        private async Task<TResponse?> PostToApiAsync<TRequest, TResponse>(TRequest? payload, string? endpoint = null) 
         {
             var accessToken = await GetAccessTokenAsync();
+
             if (string.IsNullOrEmpty(accessToken))
             {
                 _logger.LogError("No valid access token available.");
                 return default;
             }
 
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://www.warcraftlogs.com/api/v2/client{endpoint}");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            string uri = "https://www.warcraftlogs.com/api/v2/client";
+
+            if (!string.IsNullOrWhiteSpace(endpoint))
+                uri += endpoint;
+
+            HttpRequestMessage request;
+
+            if (payload is not null)
+            {
+                request = new HttpRequestMessage(HttpMethod.Post, uri)
+                {
+                    Headers = { Authorization = new AuthenticationHeaderValue("Bearer", accessToken) },
+                    Content = JsonContent.Create(payload)
+                };
+            }
+            else
+            {
+                request = new HttpRequestMessage(HttpMethod.Post, uri)
+                {
+                    Headers = { Authorization = new AuthenticationHeaderValue("Bearer", accessToken) }
+                };
+            }
 
             try
             {
                 var response = await _httpClient.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<T>();
+                    return await response.Content.ReadFromJsonAsync<TResponse>();
                 }
                 else
                 {
@@ -90,6 +113,43 @@ namespace EGON.DiscordBot.Services.WarcraftLogs
             }
 
             return default;
+        }
+
+        public async IAsyncEnumerable<Actor?> GetPlayerAttendanceAsync(string raidId)
+        {
+            var requestPayload = new
+            {
+                query = "query($code: String!) { reportData { report(code: $code) { masterData { actors { id name type subType server } } } } }",
+                variables = new { code = raidId }
+            };
+
+            var jsonResponse = await PostToApiAsync<object, JsonDocument>(requestPayload);
+            if (jsonResponse == null) yield break;
+
+            var root = jsonResponse.RootElement;
+            var actorsElement = root
+                .GetProperty("data")
+                .GetProperty("reportData")
+                .GetProperty("report")
+                .GetProperty("masterData")
+                .GetProperty("actors");
+
+            foreach (var actorElement in actorsElement.EnumerateArray())
+            {
+                string type = actorElement.GetProperty("type").GetString() ?? string.Empty;
+
+                if (type != "Player")
+                    continue;
+
+                yield return new Actor
+                {
+                    Id = actorElement.GetProperty("id").GetInt32(),
+                    Name = actorElement.GetProperty("name").GetString() ?? string.Empty,
+                    Type = type,
+                    SubType = actorElement.TryGetProperty("subType", out var subType) ? subType.GetString() : null,
+                    Server = actorElement.TryGetProperty("server", out var server) ? server.GetString() : null
+                };
+            }
         }
     }
 }

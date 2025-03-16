@@ -55,8 +55,6 @@ namespace EGON.DiscordBot.Services
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
             }
         }
-
-
     }
 }
 

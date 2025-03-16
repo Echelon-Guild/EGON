@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using Discord.Interactions;
 using Discord.WebSocket;
 using EGON.DiscordBot.Services;
+using EGON.DiscordBot.Services.WarcraftLogs;
 using EGON.DiscordBot.Services.WoW;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,6 +62,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<EventCleanupService>();
 
         services.AddSingleton<EmbedUpdateService>();
+
+        services.AddSingleton<WarcraftLogsApiService>();
     })
     .Build();
 
