@@ -53,6 +53,9 @@ namespace EGON.DiscordBot.Services
 
             _footerTable = tableServiceClient.GetTableClient(TableNames.FOOTER_TABLE_NAME);
             _footerTable.CreateIfNotExists();
+
+            _wowEventLogTable = tableServiceClient.GetTableClient(TableNames.WOW_EVENT_LOG_TABLE_NAME);
+            _wowEventLogTable.CreateIfNotExists();
         }
 
         // WoW Event Logs

@@ -34,7 +34,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            ulong serverId = ulong.Parse(Environment.GetEnvironmentVariable("DISCORD_SERVER_ID"));
+            ulong serverId = ulong.Parse(Environment.GetEnvironmentVariable("DISCORD_SERVER_ID") ?? throw new EnvironmentNotConfiguredException("DISCORD_SERVER_ID"));
 
             _discord.Ready += () => _interactions.RegisterCommandsToGuildAsync(serverId, true);
             _discord.InteractionCreated += OnInteractionAsync;

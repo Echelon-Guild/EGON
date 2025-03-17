@@ -20,7 +20,7 @@ namespace EGON.DiscordBot.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _discord.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
+            await _discord.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DISCORD_TOKEN") ?? throw new EnvironmentNotConfiguredException("DISCORD_TOKEN"));
             await _discord.StartAsync();
         }
 

@@ -6,14 +6,16 @@ namespace EGON.DiscordBot.Services.WoW
     public class BattleNetAuthService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _clientId = Environment.GetEnvironmentVariable("BATTLENET_CLIENT_ID");
-        private readonly string _clientSecret = Environment.GetEnvironmentVariable("BATTLENET_CLIENT_SECRET");
+        private readonly string _clientId;
+        private readonly string _clientSecret;
         private string? _accessToken;
         private DateTime _tokenExpiration;
 
         public BattleNetAuthService(HttpClient httpClient)
         {
             _httpClient = httpClient;
+            _clientId = Environment.GetEnvironmentVariable("BATTLENET_CLIENT_ID") ?? throw new EnvironmentNotConfiguredException("BATTLENET_CLIENT_ID");
+            _clientSecret = Environment.GetEnvironmentVariable("BATTLENET_CLIENT_SECRET") ?? throw new EnvironmentNotConfiguredException("BATTLENET_CLIENT_SECRET");
         }
 
         public async Task<string> GetAccessTokenAsync()

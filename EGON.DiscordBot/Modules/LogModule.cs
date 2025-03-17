@@ -1,6 +1,9 @@
 ﻿using Discord.Interactions;
 using EGON.DiscordBot.Models;
+using EGON.DiscordBot.Models.WarcraftLogs;
 using EGON.DiscordBot.Services;
+using EGON.DiscordBot.Services.WarcraftLogs;
+using System.Text;
 
 namespace EGON.DiscordBot.Modules
 {
@@ -8,10 +11,12 @@ namespace EGON.DiscordBot.Modules
     public class LogModule : InteractionModuleBase<SocketInteractionContext>
     {
         private readonly StorageService _storageService;
+        private readonly WarcraftLogsApiService _apiService;
 
-        public LogModule(StorageService storageService)
+        public LogModule(StorageService storageService, WarcraftLogsApiService apiService)
         {
             _storageService = storageService;
+            _apiService = apiService;
         }
 
         [SlashCommand("add", "Add or update an event log")]
@@ -82,6 +87,19 @@ namespace EGON.DiscordBot.Modules
                 await RespondAsync("Couldn't find that log in the database. It was either not added yet, or deleted.", ephemeral: true);
                 return;
             }
+        }
+
+        [SlashCommand("analyze", "Analyze an event log")]
+        public async Task AnalyzeLog(string logId)
+        {
+            StringBuilder sb = new();
+
+            await foreach (Actor? item in _apiService.GetPlayerAttendanceAsync(logId))
+            {
+                sb.AppendLine($"{item?.Name ?? "UNKNOWN"} - {item?.SubType ?? "UNKNOWN"}");
+            }
+
+            await RespondAsync(sb.ToString(), ephemeral: true);
         }
     }
 }

@@ -98,7 +98,7 @@ namespace EGON.DiscordBot.Services
         {
             _client.Ready -= Ready;
 
-            _guildId = ulong.Parse(Environment.GetEnvironmentVariable("DISCORD_SERVER_ID"));
+            _guildId = ulong.Parse(Environment.GetEnvironmentVariable("DISCORD_SERVER_ID") ?? throw new EnvironmentNotConfiguredException("DISCORD_SERVER_ID"));
         }
     }
 }

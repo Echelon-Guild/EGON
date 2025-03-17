@@ -2,8 +2,8 @@
 using Azure.Storage.Blobs;
 using Discord.Interactions;
 using Discord.WebSocket;
-using EGON.DiscordBot;
 using EGON.DiscordBot.Services;
+using EGON.DiscordBot.Services.WarcraftLogs;
 using EGON.DiscordBot.Services.WoW;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,14 +33,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton(provider =>
         {
-            return new TableServiceClient(Environment.GetEnvironmentVariable("AZURE_PRIVATE_STORAGE_CONNECTION_STRING"));
+            return new TableServiceClient(Environment.GetEnvironmentVariable("AZURE_PRIVATE_STORAGE_CONNECTION_STRING") ?? throw new EnvironmentNotConfiguredException("AZURE_PRIVATE_STORAGE_CONNECTION_STRING"));
         });
 
         services.AddSingleton<StorageService>();
 
         services.AddSingleton(provider =>
         {
-            return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_PUBLIC_STORAGE_CONNECTION_STRING"));
+            return new BlobServiceClient(Environment.GetEnvironmentVariable("AZURE_PUBLIC_STORAGE_CONNECTION_STRING") ?? throw new EnvironmentNotConfiguredException("AZURE_PUBLIC_STORAGE_CONNECTION_STRING"));
         });
 
         services.AddSingleton<BlobUploadService>();
@@ -62,6 +62,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<EventCleanupService>();
 
         services.AddSingleton<EmbedUpdateService>();
+
+        services.AddSingleton<WarcraftLogsApiService>();
     })
     .Build();
 

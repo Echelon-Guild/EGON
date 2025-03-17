@@ -9,7 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
-appsettings.json
+*egon-google-credentials.json
 *launchSettings.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
