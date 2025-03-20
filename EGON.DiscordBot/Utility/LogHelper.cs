@@ -31,5 +31,15 @@ namespace EGON.DiscordBot.Utility
             }
             return Task.CompletedTask;
         }
+
+        public static void LogMessage(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public static void LogError(string message)
+        {
+            Console.Error.WriteLine(message);
+        }
     }
 }

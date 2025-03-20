@@ -598,7 +598,7 @@ namespace EGON.DiscordBot.Modules
 
                 if (user is null)
                 {
-                    await RespondAsync("Tell Chris something weird happened in ScheduleModule on line 750.");
+                    await RespondAsync("Tell Chris something weird happened in EventModule on line 601.");
                     return;
                 }
 
@@ -615,7 +615,7 @@ namespace EGON.DiscordBot.Modules
                     Spec = user.Spec
                 };
 
-                await RespondAsync($"✅ {Context.Guild.GetUser(Context.User.Id).DisplayName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
+                await RespondAsync($"✅ {record.DiscordDisplayName} signed up as a **{record.Spec.Prettyfy().ToUpper()} {record.Class.Prettyfy().ToUpper()}** ({record.Role})", ephemeral: true);
 
 
                 await _storageService.UpsertAttendeeAsync(record);

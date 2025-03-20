@@ -25,7 +25,13 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("add", "Add an attendance record for a user to an event.")]
             public async Task AdminAttendAdd(string userId, string eventId, string? userName = "", string? userClass = "", string? userSpec = "")
             {
-                ulong _eventId = ulong.Parse(eventId);
+                LogHelper.LogMessage($"{Context.User.Username} calling AdminAttendAdd on user {userId} event {eventId}");
+
+                if (!ulong.TryParse(eventId, out ulong _eventId))
+                {
+                    await RespondAsync($"{eventId} is not a valid eventId.", ephemeral: true);
+                    return;
+                }
 
                 EchelonEvent? event_ = _storageService.GetEvent(_eventId);
 
@@ -106,7 +112,13 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("remove", "Remove an attendance record for a user to an event.")]
             public async Task AdminAttendRemove(string userId, string eventId)
             {
-                ulong _eventId = ulong.Parse(eventId);
+                LogHelper.LogMessage($"{Context.User.Username} calling AdminAttendRemove on user {userId} event {eventId}");
+
+                if (!ulong.TryParse(eventId, out ulong _eventId))
+                {
+                    await RespondAsync($"{eventId} is not a valid eventId.", ephemeral: true);
+                    return;
+                }
 
                 EchelonEvent? event_ = _storageService.GetEvent(_eventId);
 
@@ -179,6 +191,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("mythic", "Update the default image used when creating a Mythic event.")]
             public async Task Mythic(IAttachment image)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} changing Mythic default image.");
+
                 string userName = Context.User.Username;
 
                 if (userName != "chris068367" && userName != "fadedskyjeff")
@@ -203,6 +217,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("raid", "Update the default image used when creating a Raid event.")]
             public async Task Raid(IAttachment image)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} changing Raid default image.");
+
                 string userName = Context.User.Username;
 
                 if (userName != "chris068367" && userName != "fadedskyjeff" && userName != "sinister01")
@@ -227,6 +243,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("event", "Update the default image used when creating a non-WoW event.")]
             public async Task Event(IAttachment image)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} changing Event default image.");
+
                 string userName = Context.User.Username;
 
                 if (userName != "chris068367" && userName != "fadedskyjeff")
@@ -263,6 +281,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("add", "Add a possible event footer.")]
             public async Task AddFooter(string footer)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} uploading footer {footer}.");
+
                 if (!_storageService.IsApprovedCaller(Context.User.Username, "footer"))
                 {
                     await RespondAsync("You aren't authorized to add or remove footers! Sorry!", ephemeral: true);
@@ -291,6 +311,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("remove", "Remove a possible event footer.")]
             public async Task RemoveFooter(string id)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} removing footer {id}.");
+
                 if (!Guid.TryParse(id, out Guid id_))
                 {
                     await RespondAsync($"{id} is not a valid footer id.", ephemeral: true);
@@ -332,6 +354,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("update", "Update a stored footer with new text.")]
             public async Task UpdateFooter(string id, string footer)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} updating footer {id} to {footer}.");
+
                 if (!Guid.TryParse(id, out Guid id_))
                 {
                     await RespondAsync($"{id} is not a valid footer id.", ephemeral: true);
@@ -377,6 +401,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("edit", "Edit an event.")]
             public async Task AdminEventEdit(string eventId)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} updating event {eventId}.");
+
                 if (!ulong.TryParse(eventId, out ulong id))
                 {
                     await RespondAsync($"{eventId} is not a valid event id.", ephemeral: true);
@@ -404,6 +430,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("delete", "Delete an event.")]
             public async Task AdminEventDelete(string eventId)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} deleting event {eventId}.");
+
                 if (!ulong.TryParse(eventId, out ulong id))
                 {
                     await RespondAsync($"{eventId} is not a valid event id.", ephemeral: true);
@@ -432,6 +460,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("cancel", "Cancel an event.")]
             public async Task AdminEventCancel(string eventId)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} cancelling event {eventId}.");
+
                 if (!ulong.TryParse(eventId, out ulong id))
                 {
                     await RespondAsync($"{eventId} is not a valid event id.", ephemeral: true);
@@ -460,6 +490,8 @@ namespace EGON.DiscordBot.Modules
             [SlashCommand("setimage", "Set the image of an event.")]
             public async Task AdminEventSetImage(string eventId, IAttachment image)
             {
+                LogHelper.LogMessage($"User {Context.User.Username} setting event {eventId} image.");
+
                 if (!ulong.TryParse(eventId, out ulong id))
                 {
                     await RespondAsync($"{eventId} is not a valid event id.", ephemeral: true);
